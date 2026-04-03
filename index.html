@@ -28,7 +28,15 @@
       </div>
       <div class="target-input">
         <label id="target-label" for="target">Number of rounds</label>
-        <input type="number" id="target" min="1" value="10">
+        <input type="number" id="target" min="1" value="6">
+      </div>
+      <div class="score-direction">
+        <label>Winner has</label>
+        <div class="toggle-group toggle-sm">
+          <button class="toggle" data-direction="high">Highest score</button>
+          <button class="toggle active" data-direction="low">Lowest score</button>
+          <div class="toggle-indicator"></div>
+        </div>
       </div>
     </section>
 
@@ -68,7 +76,10 @@
       </table>
     </div>
 
-    <button id="add-round" class="btn-primary hidden">+ Add Round</button>
+    <div class="grid-actions">
+      <button id="add-round" class="btn-primary hidden">+ Add Round</button>
+      <button id="clear-all" class="btn-danger-ghost">Clear All Scores</button>
+    </div>
 
     <div id="game-over" class="hidden">
       <div class="winner-card">

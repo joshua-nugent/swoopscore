@@ -1,7 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-let game = { mode: "rounds", target: 10, players: [], rounds: [] };
+let game = { mode: "rounds", target: 6, highWins: false, players: [], rounds: [] };
 
 // --- Recent names (localStorage) ---
 
@@ -66,7 +66,16 @@ $$(".toggle").forEach((btn) => {
     game.mode = btn.dataset.mode;
     $("#target-label").textContent =
       game.mode === "score" ? "Target score" : "Number of rounds";
-    $("#target").value = game.mode === "score" ? 100 : 10;
+    $("#target").value = game.mode === "score" ? 100 : 6;
+  });
+});
+
+// Score direction toggle
+$$(".score-direction .toggle").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    $$(".score-direction .toggle").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    game.highWins = btn.dataset.direction === "high";
   });
 });
 
@@ -131,7 +140,7 @@ $("#start-game").addEventListener("click", () => {
   let idx = 1;
   const names = filled.map((inp) => inp.value.trim() || `Player ${idx++}`);
 
-  game.target = parseInt($("#target").value) || (game.mode === "rounds" ? 10 : 100);
+  game.target = parseInt($("#target").value) || (game.mode === "rounds" ? 6 : 100);
   game.players = names;
   game.rounds = [];
 
@@ -147,10 +156,11 @@ function showScoring() {
   $("#setup").classList.remove("active");
   $("#scoring").classList.add("active");
 
-  const label = game.mode === "score"
+  const modeLabel = game.mode === "score"
     ? `First to ${game.target}`
     : `${game.target} rounds`;
-  $("#game-info").textContent = label;
+  const dirLabel = game.highWins ? "high wins" : "low wins";
+  $("#game-info").textContent = `${modeLabel} \u00b7 ${dirLabel}`;
 
   buildHead();
 
@@ -211,10 +221,7 @@ function renderGrid() {
 
   updateTotals();
 
-  const lastRound = game.rounds.length - 1;
-  const firstInput = body.querySelector(
-    `input[data-round="${lastRound}"][data-player="0"]`
-  );
+  const firstInput = body.querySelector('input[data-round="0"][data-player="0"]');
   if (firstInput) firstInput.select();
 }
 
@@ -236,19 +243,22 @@ function updateTotals() {
   const totals = game.players.map((_, p) =>
     game.rounds.reduce((sum, round) => sum + round[p], 0)
   );
-  const maxTotal = Math.max(...totals);
+  const anyScored = totals.some((t) => t !== 0);
+  const bestTotal = game.highWins ? Math.max(...totals) : Math.min(...totals);
 
   totals.forEach((total) => {
     const td = document.createElement("td");
     td.textContent = total;
-    if (total === maxTotal && maxTotal > 0) td.className = "leader";
+    if (anyScored && total === bestTotal) td.className = "leader";
     tr.appendChild(td);
   });
 
   foot.replaceChildren(tr);
 
   if (game.mode === "score") {
-    const winner = totals.findIndex((t) => t >= game.target);
+    const winner = game.highWins
+      ? totals.findIndex((t) => t >= game.target)
+      : totals.findIndex((t) => t >= game.target);
     if (winner !== -1) showGameOver(winner, totals[winner]);
   }
 }
@@ -259,10 +269,29 @@ $("#add-round").addEventListener("click", () => {
   renderGrid();
 });
 
+// Clear all scores
+$("#clear-all").addEventListener("click", () => {
+  if (!confirm("This will erase ALL scores. Are you sure?")) return;
+  if (!confirm("Really? This cannot be undone!")) return;
+  game.rounds = game.rounds.map((r) => r.map(() => 0));
+  renderGrid();
+});
+
 function showGameOver(winnerIdx, score) {
+  // For "play to score" mode, winnerIdx is passed directly.
+  // For manual end-game or rounds completion, recalculate based on direction.
   $("#add-round").classList.add("hidden");
   $("#game-over").classList.remove("hidden");
   $("#winner-text").textContent = `${game.players[winnerIdx]} wins with ${score} points!`;
+}
+
+function findWinner() {
+  const totals = game.players.map((_, p) =>
+    game.rounds.reduce((sum, round) => sum + round[p], 0)
+  );
+  const best = game.highWins ? Math.max(...totals) : Math.min(...totals);
+  const idx = totals.indexOf(best);
+  return { idx, score: best };
 }
 
 function resetToSetup() {
