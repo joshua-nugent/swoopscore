@@ -459,6 +459,16 @@ body {
   transition: all 0.15s;
 }
 
+#score-grid input.untouched {
+  color: var(--muted);
+  opacity: 0.4;
+}
+
+#score-grid input.untouched:focus {
+  opacity: 1;
+  color: var(--text);
+}
+
 #score-grid input:hover {
   background: var(--surface);
   border-color: var(--border);

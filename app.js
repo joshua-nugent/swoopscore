@@ -1,6 +1,7 @@
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
+// Cell values: null = untouched, 0 = explicit zero, number = scored
 let game = { mode: "rounds", target: 6, highWins: false, players: [], rounds: [] };
 
 // --- Recent names (localStorage) ---
@@ -58,7 +59,6 @@ renderRecentNames();
 
 // --- Setup screen ---
 
-// Mode toggle
 $$("#mode-toggle .toggle").forEach((btn) => {
   btn.addEventListener("click", () => {
     $$("#mode-toggle .toggle").forEach((b) => b.classList.remove("active"));
@@ -70,7 +70,6 @@ $$("#mode-toggle .toggle").forEach((btn) => {
   });
 });
 
-// Score direction toggle
 $$("#direction-toggle .toggle").forEach((btn) => {
   btn.addEventListener("click", () => {
     $$("#direction-toggle .toggle").forEach((b) => b.classList.remove("active"));
@@ -112,19 +111,16 @@ function ensureEmptyRow() {
   }
 }
 
-// Auto-spawn: when typing in the last row, add a new empty one
 $("#player-list").addEventListener("input", (e) => {
   if (!e.target.classList.contains("player-name")) return;
   ensureEmptyRow();
 });
 
-// Remove player
 $("#player-list").addEventListener("click", (e) => {
   if (!e.target.classList.contains("remove-player")) return;
   const rows = $$("#player-list .player-row");
   if (rows.length <= 2) return;
   e.target.closest(".player-row").remove();
-  // Re-number placeholders
   $$("#player-list .player-name").forEach((inp, i) => {
     inp.placeholder = `Player ${i + 1}`;
   });
@@ -132,7 +128,6 @@ $("#player-list").addEventListener("click", (e) => {
 
 // Start game
 $("#start-game").addEventListener("click", () => {
-  // Collect non-empty names, assign defaults
   const allInputs = [...$$(".player-name")];
   const filled = allInputs.filter((inp) => inp.value.trim() !== "");
   if (filled.length < 2) return;
@@ -152,6 +147,10 @@ $("#start-game").addEventListener("click", () => {
 
 // --- Scoring screen ---
 
+function newRound() {
+  return new Array(game.players.length).fill(null);
+}
+
 function showScoring() {
   $("#setup").classList.remove("active");
   $("#scoring").classList.add("active");
@@ -165,12 +164,10 @@ function showScoring() {
   buildHead();
 
   if (game.mode === "rounds") {
-    for (let r = 0; r < game.target; r++) {
-      game.rounds.push(new Array(game.players.length).fill(0));
-    }
+    for (let r = 0; r < game.target; r++) game.rounds.push(newRound());
     $("#add-round").classList.add("hidden");
   } else {
-    game.rounds.push(new Array(game.players.length).fill(0));
+    game.rounds.push(newRound());
     $("#add-round").classList.remove("hidden");
   }
 
@@ -207,9 +204,16 @@ function renderGrid(focusRound = 0) {
       const td = document.createElement("td");
       const input = document.createElement("input");
       input.type = "number";
-      input.value = val;
       input.dataset.round = r;
       input.dataset.player = p;
+
+      if (val === null) {
+        input.value = "";
+        input.classList.add("untouched");
+      } else {
+        input.value = val;
+      }
+
       input.addEventListener("input", onScoreInput);
       input.addEventListener("focus", () => input.select());
       td.appendChild(input);
@@ -228,8 +232,23 @@ function renderGrid(focusRound = 0) {
 function onScoreInput(e) {
   const r = parseInt(e.target.dataset.round);
   const p = parseInt(e.target.dataset.player);
-  game.rounds[r][p] = parseInt(e.target.value) || 0;
+  const raw = e.target.value.trim();
+
+  if (raw === "") {
+    // Cleared the input — back to untouched
+    game.rounds[r][p] = null;
+    e.target.classList.add("untouched");
+  } else {
+    game.rounds[r][p] = parseInt(raw) || 0;
+    e.target.classList.remove("untouched");
+  }
+
   updateTotals();
+}
+
+// Treat null as 0 for summing
+function cellValue(v) {
+  return v === null ? 0 : v;
 }
 
 function updateTotals() {
@@ -241,28 +260,27 @@ function updateTotals() {
   tr.appendChild(label);
 
   const totals = game.players.map((_, p) =>
-    game.rounds.reduce((sum, round) => sum + round[p], 0)
+    game.rounds.reduce((sum, round) => sum + cellValue(round[p]), 0)
   );
 
-  // A round is incomplete if some but not all players have a score
+  // A round is incomplete if it has a mix of entered and untouched cells
   const incomplete = game.rounds.some((round) => {
-    const filled = round.filter((v) => v !== 0).length;
-    return filled > 0 && filled < round.length;
+    const enteredCount = round.filter((v) => v !== null).length;
+    return enteredCount > 0 && enteredCount < round.length;
   });
 
-  const anyScored = totals.some((t) => t !== 0);
+  const anyEntered = game.rounds.some((round) => round.some((v) => v !== null));
   const bestTotal = game.highWins ? Math.max(...totals) : Math.min(...totals);
 
   totals.forEach((total) => {
     const td = document.createElement("td");
     td.textContent = total;
-    if (!incomplete && anyScored && total === bestTotal) td.className = "leader";
+    if (!incomplete && anyEntered && total === bestTotal) td.className = "leader";
     tr.appendChild(td);
   });
 
   foot.replaceChildren(tr);
 
-  // Re-evaluate win state every time
   const status = $("#score-status");
   if (incomplete) {
     status.textContent = "Finish entering scores for all players before results are final.";
@@ -271,7 +289,7 @@ function updateTotals() {
   } else {
     status.classList.add("hidden");
 
-    const shouldEnd = game.mode === "score" && anyScored &&
+    const shouldEnd = game.mode === "score" && anyEntered &&
       totals.some((t) => t >= game.target);
 
     if (shouldEnd) {
@@ -285,7 +303,7 @@ function updateTotals() {
 
 // Add round (score mode only)
 $("#add-round").addEventListener("click", () => {
-  game.rounds.push(new Array(game.players.length).fill(0));
+  game.rounds.push(newRound());
   renderGrid(game.rounds.length - 1);
 });
 
@@ -293,7 +311,7 @@ $("#add-round").addEventListener("click", () => {
 $("#clear-all").addEventListener("click", () => {
   if (!confirm("This will erase ALL scores. Are you sure?")) return;
   if (!confirm("Really? This cannot be undone!")) return;
-  game.rounds = game.rounds.map((r) => r.map(() => 0));
+  game.rounds = game.rounds.map((r) => r.map(() => null));
   renderGrid();
 });
 
@@ -310,7 +328,7 @@ function hideGameOver() {
 
 function findWinner() {
   const totals = game.players.map((_, p) =>
-    game.rounds.reduce((sum, round) => sum + round[p], 0)
+    game.rounds.reduce((sum, round) => sum + cellValue(round[p]), 0)
   );
   const best = game.highWins ? Math.max(...totals) : Math.min(...totals);
   const idx = totals.indexOf(best);
