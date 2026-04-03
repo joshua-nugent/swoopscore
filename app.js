@@ -256,10 +256,11 @@ function updateTotals() {
   foot.replaceChildren(tr);
 
   if (game.mode === "score") {
-    const winner = game.highWins
-      ? totals.findIndex((t) => t >= game.target)
-      : totals.findIndex((t) => t >= game.target);
-    if (winner !== -1) showGameOver(winner, totals[winner]);
+    const someoneHitTarget = totals.some((t) => t >= game.target);
+    if (someoneHitTarget) {
+      const w = findWinner();
+      showGameOver(w.idx, w.score);
+    }
   }
 }
 
