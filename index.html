@@ -16,17 +16,18 @@
     <section class="card">
       <h2>Game Mode</h2>
       <div class="toggle-group">
-        <button class="toggle active" data-mode="score">Play to score</button>
-        <button class="toggle" data-mode="rounds">Play rounds</button>
+        <button class="toggle" data-mode="score">Play to score</button>
+        <button class="toggle active" data-mode="rounds">Play rounds</button>
       </div>
       <div class="target-input">
-        <label id="target-label" for="target">Target score</label>
-        <input type="number" id="target" min="1" value="100">
+        <label id="target-label" for="target">Number of rounds</label>
+        <input type="number" id="target" min="1" value="10">
       </div>
     </section>
 
     <section class="card">
       <h2>Players</h2>
+      <div id="recent-names"></div>
       <div id="player-list">
         <div class="player-row">
           <input type="text" class="player-name" placeholder="Player 1">

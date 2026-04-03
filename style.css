@@ -115,6 +115,33 @@ h1 {
   text-align: center;
 }
 
+/* Recent name tiles */
+
+#recent-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+#recent-names:empty { margin-bottom: 0; }
+
+.name-tile {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.name-tile:hover {
+  border-color: var(--accent);
+  background: var(--card);
+}
+
 /* Players */
 
 .player-row {

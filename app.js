@@ -1,7 +1,76 @@
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
-let game = { mode: "score", target: 100, players: [], rounds: [] };
+let game = { mode: "rounds", target: 10, players: [], rounds: [] };
+
+// --- Recent names (localStorage) ---
+
+const STORAGE_KEY = "swoopscore_recent_names";
+
+function getRecentNames() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+  } catch { return []; }
+}
+
+function saveRecentNames(names) {
+  const existing = getRecentNames();
+  // Merge new names to front, deduplicate (case-insensitive), cap at 20
+  const merged = [...names, ...existing];
+  const seen = new Set();
+  const unique = merged.filter((n) => {
+    const key = n.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(unique.slice(0, 20)));
+}
+
+function renderRecentNames() {
+  const container = $("#recent-names");
+  container.replaceChildren();
+  const names = getRecentNames();
+  if (names.length === 0) return;
+
+  names.forEach((name) => {
+    const tile = document.createElement("button");
+    tile.className = "name-tile";
+    tile.textContent = name;
+    tile.addEventListener("click", () => addPlayerWithName(name));
+    container.appendChild(tile);
+  });
+}
+
+function addPlayerWithName(name) {
+  // If there's an empty input, fill it instead of adding a new row
+  const emptyInput = [...$$(".player-name")].find((inp) => inp.value.trim() === "");
+  if (emptyInput) {
+    emptyInput.value = name;
+    return;
+  }
+
+  const count = $$("#player-list .player-row").length + 1;
+  const row = document.createElement("div");
+  row.className = "player-row";
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "player-name";
+  input.placeholder = `Player ${count}`;
+  input.value = name;
+
+  const removeBtn = document.createElement("button");
+  removeBtn.className = "remove-player";
+  removeBtn.setAttribute("aria-label", "Remove");
+  removeBtn.textContent = "\u00d7";
+
+  row.appendChild(input);
+  row.appendChild(removeBtn);
+  $("#player-list").appendChild(row);
+}
+
+renderRecentNames();
 
 // --- Setup screen ---
 
@@ -49,9 +118,13 @@ $("#start-game").addEventListener("click", () => {
   );
   if (names.length < 2) return;
 
-  game.target = parseInt($("#target").value) || (game.mode === "score" ? 100 : 10);
+  game.target = parseInt($("#target").value) || (game.mode === "rounds" ? 10 : 100);
   game.players = names;
   game.rounds = [];
+
+  // Save non-default names for quick-add next time
+  const realNames = names.filter((n) => !n.match(/^Player \d+$/));
+  if (realNames.length > 0) saveRecentNames(realNames);
 
   showScoring();
 });
@@ -206,6 +279,7 @@ $("#new-game").addEventListener("click", () => {
   $("#game-over").classList.add("hidden");
   $("#grid-body").replaceChildren();
   $("#grid-foot").replaceChildren();
+  renderRecentNames();
 });
 
 // Back button
@@ -217,5 +291,6 @@ $("#back-btn").addEventListener("click", () => {
     $("#add-round").classList.add("hidden");
     $("#grid-body").replaceChildren();
     $("#grid-foot").replaceChildren();
+    renderRecentNames();
   }
 });
