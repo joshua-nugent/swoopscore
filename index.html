@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SwoopScore</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- SETUP SCREEN -->
+  <div id="setup" class="screen active">
+    <h1>SwoopScore</h1>
+    <p class="subtitle">swoopscore.win</p>
+
+    <section class="card">
+      <h2>Game Mode</h2>
+      <div class="toggle-group">
+        <button class="toggle active" data-mode="score">Play to score</button>
+        <button class="toggle" data-mode="rounds">Play rounds</button>
+      </div>
+      <div class="target-input">
+        <label id="target-label" for="target">Target score</label>
+        <input type="number" id="target" min="1" value="100">
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Players</h2>
+      <div id="player-list">
+        <div class="player-row">
+          <input type="text" class="player-name" placeholder="Player 1">
+          <button class="remove-player" aria-label="Remove">&times;</button>
+        </div>
+        <div class="player-row">
+          <input type="text" class="player-name" placeholder="Player 2">
+          <button class="remove-player" aria-label="Remove">&times;</button>
+        </div>
+      </div>
+      <button id="add-player" class="btn-secondary">+ Add player</button>
+    </section>
+
+    <button id="start-game" class="btn-primary">Start Game</button>
+  </div>
+
+  <!-- SCORING SCREEN -->
+  <div id="scoring" class="screen">
+    <header class="scoring-header">
+      <button id="back-btn" class="btn-icon" aria-label="Back">&larr;</button>
+      <h1>SwoopScore</h1>
+      <div id="game-info"></div>
+    </header>
+
+    <div class="grid-wrapper">
+      <table id="score-grid">
+        <thead id="grid-head"></thead>
+        <tbody id="grid-body"></tbody>
+        <tfoot id="grid-foot"></tfoot>
+      </table>
+    </div>
+
+    <button id="add-round" class="btn-primary hidden">+ Add Round</button>
+
+    <div id="game-over" class="hidden">
+      <h2 id="winner-text"></h2>
+      <button id="new-game" class="btn-primary">New Game</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
