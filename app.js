@@ -59,9 +59,9 @@ renderRecentNames();
 // --- Setup screen ---
 
 // Mode toggle
-$$(".toggle").forEach((btn) => {
+$$("#mode-toggle .toggle").forEach((btn) => {
   btn.addEventListener("click", () => {
-    $$(".toggle").forEach((b) => b.classList.remove("active"));
+    $$("#mode-toggle .toggle").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     game.mode = btn.dataset.mode;
     $("#target-label").textContent =
@@ -71,9 +71,9 @@ $$(".toggle").forEach((btn) => {
 });
 
 // Score direction toggle
-$$(".score-direction .toggle").forEach((btn) => {
+$$("#direction-toggle .toggle").forEach((btn) => {
   btn.addEventListener("click", () => {
-    $$(".score-direction .toggle").forEach((b) => b.classList.remove("active"));
+    $$("#direction-toggle .toggle").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     game.highWins = btn.dataset.direction === "high";
   });
@@ -243,23 +243,41 @@ function updateTotals() {
   const totals = game.players.map((_, p) =>
     game.rounds.reduce((sum, round) => sum + round[p], 0)
   );
+
+  // A round is incomplete if some but not all players have a score
+  const incomplete = game.rounds.some((round) => {
+    const filled = round.filter((v) => v !== 0).length;
+    return filled > 0 && filled < round.length;
+  });
+
   const anyScored = totals.some((t) => t !== 0);
   const bestTotal = game.highWins ? Math.max(...totals) : Math.min(...totals);
 
   totals.forEach((total) => {
     const td = document.createElement("td");
     td.textContent = total;
-    if (anyScored && total === bestTotal) td.className = "leader";
+    if (!incomplete && anyScored && total === bestTotal) td.className = "leader";
     tr.appendChild(td);
   });
 
   foot.replaceChildren(tr);
 
-  if (game.mode === "score") {
-    const someoneHitTarget = totals.some((t) => t >= game.target);
-    if (someoneHitTarget) {
-      const w = findWinner();
-      showGameOver(w.idx, w.score);
+  // Show status message or check for winner
+  const status = $("#score-status");
+  if (incomplete) {
+    status.textContent = "Finish entering scores for all players before results are final.";
+    status.classList.remove("hidden");
+    // Hide game-over if it was shown prematurely
+    $("#game-over").classList.add("hidden");
+  } else {
+    status.classList.add("hidden");
+
+    if (game.mode === "score" && anyScored) {
+      const someoneHitTarget = totals.some((t) => t >= game.target);
+      if (someoneHitTarget) {
+        const w = findWinner();
+        showGameOver(w.idx, w.score);
+      }
     }
   }
 }

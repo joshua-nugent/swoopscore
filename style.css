@@ -471,6 +471,18 @@ body {
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
+/* Score status message */
+.score-status {
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--accent-glow);
+  border: 1px solid rgba(224, 122, 95, 0.2);
+  border-radius: var(--radius-sm);
+}
+
 /* Grid actions */
 .grid-actions {
   display: flex;

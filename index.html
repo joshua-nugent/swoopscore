@@ -21,7 +21,7 @@
 
     <section class="card stagger-1">
       <h2>Game Mode</h2>
-      <div class="toggle-group">
+      <div id="mode-toggle" class="toggle-group">
         <button class="toggle" data-mode="score">Play to score</button>
         <button class="toggle active" data-mode="rounds">Play rounds</button>
         <div class="toggle-indicator"></div>
@@ -32,7 +32,7 @@
       </div>
       <div class="score-direction">
         <label>Winner has</label>
-        <div class="toggle-group toggle-sm">
+        <div id="direction-toggle" class="toggle-group toggle-sm">
           <button class="toggle" data-direction="high">Highest score</button>
           <button class="toggle active" data-direction="low">Lowest score</button>
           <div class="toggle-indicator"></div>
@@ -75,6 +75,8 @@
         <tfoot id="grid-foot"></tfoot>
       </table>
     </div>
+
+    <p id="score-status" class="score-status hidden"></p>
 
     <div class="grid-actions">
       <button id="add-round" class="btn-primary hidden">+ Add Round</button>
