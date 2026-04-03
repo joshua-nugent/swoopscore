@@ -15,7 +15,6 @@ function getRecentNames() {
 
 function saveRecentNames(names) {
   const existing = getRecentNames();
-  // Merge new names to front, deduplicate (case-insensitive), cap at 20
   const merged = [...names, ...existing];
   const seen = new Set();
   const unique = merged.filter((n) => {
@@ -36,44 +35,30 @@ function renderRecentNames() {
   names.forEach((name) => {
     const tile = document.createElement("button");
     tile.className = "name-tile";
+    tile.type = "button";
     tile.textContent = name;
-    tile.addEventListener("click", () => addPlayerWithName(name));
+    tile.addEventListener("click", () => {
+      addPlayerWithName(name);
+      ensureEmptyRow();
+    });
     container.appendChild(tile);
   });
 }
 
 function addPlayerWithName(name) {
-  // If there's an empty input, fill it instead of adding a new row
   const emptyInput = [...$$(".player-name")].find((inp) => inp.value.trim() === "");
   if (emptyInput) {
     emptyInput.value = name;
     return;
   }
-
-  const count = $$("#player-list .player-row").length + 1;
-  const row = document.createElement("div");
-  row.className = "player-row";
-
-  const input = document.createElement("input");
-  input.type = "text";
-  input.className = "player-name";
-  input.placeholder = `Player ${count}`;
-  input.value = name;
-
-  const removeBtn = document.createElement("button");
-  removeBtn.className = "remove-player";
-  removeBtn.setAttribute("aria-label", "Remove");
-  removeBtn.textContent = "\u00d7";
-
-  row.appendChild(input);
-  row.appendChild(removeBtn);
-  $("#player-list").appendChild(row);
+  appendPlayerRow(name);
 }
 
 renderRecentNames();
 
 // --- Setup screen ---
 
+// Mode toggle
 $$(".toggle").forEach((btn) => {
   btn.addEventListener("click", () => {
     $$(".toggle").forEach((b) => b.classList.remove("active"));
@@ -85,7 +70,9 @@ $$(".toggle").forEach((btn) => {
   });
 });
 
-$("#add-player").addEventListener("click", () => {
+// --- Player list with auto-spawn ---
+
+function appendPlayerRow(value) {
   const count = $$("#player-list .player-row").length + 1;
   const row = document.createElement("div");
   row.className = "player-row";
@@ -94,35 +81,60 @@ $("#add-player").addEventListener("click", () => {
   input.type = "text";
   input.className = "player-name";
   input.placeholder = `Player ${count}`;
+  if (value) input.value = value;
 
   const removeBtn = document.createElement("button");
   removeBtn.className = "remove-player";
+  removeBtn.type = "button";
   removeBtn.setAttribute("aria-label", "Remove");
   removeBtn.textContent = "\u00d7";
 
   row.appendChild(input);
   row.appendChild(removeBtn);
   $("#player-list").appendChild(row);
-  input.focus();
+  return input;
+}
+
+function ensureEmptyRow() {
+  const inputs = [...$$(".player-name")];
+  const lastInput = inputs[inputs.length - 1];
+  if (lastInput && lastInput.value.trim() !== "") {
+    appendPlayerRow();
+  }
+}
+
+// Auto-spawn: when typing in the last row, add a new empty one
+$("#player-list").addEventListener("input", (e) => {
+  if (!e.target.classList.contains("player-name")) return;
+  ensureEmptyRow();
 });
 
+// Remove player
 $("#player-list").addEventListener("click", (e) => {
   if (!e.target.classList.contains("remove-player")) return;
-  if ($$("#player-list .player-row").length <= 2) return;
+  const rows = $$("#player-list .player-row");
+  if (rows.length <= 2) return;
   e.target.closest(".player-row").remove();
+  // Re-number placeholders
+  $$("#player-list .player-name").forEach((inp, i) => {
+    inp.placeholder = `Player ${i + 1}`;
+  });
 });
 
+// Start game
 $("#start-game").addEventListener("click", () => {
-  const names = [...$$(".player-name")].map(
-    (input, i) => input.value.trim() || `Player ${i + 1}`
-  );
-  if (names.length < 2) return;
+  // Collect non-empty names, assign defaults
+  const allInputs = [...$$(".player-name")];
+  const filled = allInputs.filter((inp) => inp.value.trim() !== "");
+  if (filled.length < 2) return;
+
+  let idx = 1;
+  const names = filled.map((inp) => inp.value.trim() || `Player ${idx++}`);
 
   game.target = parseInt($("#target").value) || (game.mode === "rounds" ? 10 : 100);
   game.players = names;
   game.rounds = [];
 
-  // Save non-default names for quick-add next time
   const realNames = names.filter((n) => !n.match(/^Player \d+$/));
   if (realNames.length > 0) saveRecentNames(realNames);
 
@@ -143,13 +155,11 @@ function showScoring() {
   buildHead();
 
   if (game.mode === "rounds") {
-    // Pre-fill all round rows
     for (let r = 0; r < game.target; r++) {
       game.rounds.push(new Array(game.players.length).fill(0));
     }
     $("#add-round").classList.add("hidden");
   } else {
-    // Start with one round
     game.rounds.push(new Array(game.players.length).fill(0));
     $("#add-round").classList.remove("hidden");
   }
@@ -180,7 +190,7 @@ function renderGrid() {
     const tr = document.createElement("tr");
 
     const label = document.createElement("td");
-    label.textContent = `Round ${r + 1}`;
+    label.textContent = `R${r + 1}`;
     tr.appendChild(label);
 
     roundScores.forEach((val, p) => {
@@ -201,7 +211,6 @@ function renderGrid() {
 
   updateTotals();
 
-  // Focus the first empty input of the last round
   const lastRound = game.rounds.length - 1;
   const firstInput = body.querySelector(
     `input[data-round="${lastRound}"][data-player="0"]`
@@ -238,7 +247,6 @@ function updateTotals() {
 
   foot.replaceChildren(tr);
 
-  // Check win condition for "play to score" mode
   if (game.mode === "score") {
     const winner = totals.findIndex((t) => t >= game.target);
     if (winner !== -1) showGameOver(winner, totals[winner]);
@@ -257,40 +265,18 @@ function showGameOver(winnerIdx, score) {
   $("#winner-text").textContent = `${game.players[winnerIdx]} wins with ${score} points!`;
 }
 
-// For rounds mode, check when all inputs are filled
-function checkRoundsComplete() {
-  const allFilled = game.rounds.every((round) =>
-    round.some((v) => v !== 0)
-  );
-  if (!allFilled) return;
-
-  const totals = game.players.map((_, p) =>
-    game.rounds.reduce((sum, round) => sum + round[p], 0)
-  );
-  const maxTotal = Math.max(...totals);
-  const winner = totals.indexOf(maxTotal);
-  showGameOver(winner, maxTotal);
-}
-
-// New game
-$("#new-game").addEventListener("click", () => {
+function resetToSetup() {
   $("#scoring").classList.remove("active");
   $("#setup").classList.add("active");
   $("#game-over").classList.add("hidden");
+  $("#add-round").classList.add("hidden");
   $("#grid-body").replaceChildren();
   $("#grid-foot").replaceChildren();
   renderRecentNames();
-});
+}
 
-// Back button
+$("#new-game").addEventListener("click", resetToSetup);
+
 $("#back-btn").addEventListener("click", () => {
-  if (confirm("End this game and go back to setup?")) {
-    $("#scoring").classList.remove("active");
-    $("#setup").classList.add("active");
-    $("#game-over").classList.add("hidden");
-    $("#add-round").classList.add("hidden");
-    $("#grid-body").replaceChildren();
-    $("#grid-foot").replaceChildren();
-    renderRecentNames();
-  }
+  if (confirm("End this game and go back to setup?")) resetToSetup();
 });

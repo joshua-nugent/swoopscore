@@ -4,20 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SwoopScore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+  <div class="grain"></div>
+
   <!-- SETUP SCREEN -->
   <div id="setup" class="screen active">
-    <h1>SwoopScore</h1>
-    <p class="subtitle">swoopscore.win</p>
+    <header class="brand">
+      <h1><span class="brand-swoop">Swoop</span><span class="brand-score">Score</span></h1>
+    </header>
 
-    <section class="card">
+    <section class="card stagger-1">
       <h2>Game Mode</h2>
       <div class="toggle-group">
         <button class="toggle" data-mode="score">Play to score</button>
         <button class="toggle active" data-mode="rounds">Play rounds</button>
+        <div class="toggle-indicator"></div>
       </div>
       <div class="target-input">
         <label id="target-label" for="target">Number of rounds</label>
@@ -25,7 +32,7 @@
       </div>
     </section>
 
-    <section class="card">
+    <section class="card stagger-2">
       <h2>Players</h2>
       <div id="recent-names"></div>
       <div id="player-list">
@@ -38,17 +45,18 @@
           <button class="remove-player" aria-label="Remove">&times;</button>
         </div>
       </div>
-      <button id="add-player" class="btn-secondary">+ Add player</button>
     </section>
 
-    <button id="start-game" class="btn-primary">Start Game</button>
+    <button id="start-game" class="btn-primary stagger-3">Start Game</button>
   </div>
 
   <!-- SCORING SCREEN -->
   <div id="scoring" class="screen">
     <header class="scoring-header">
-      <button id="back-btn" class="btn-icon" aria-label="Back">&larr;</button>
-      <h1>SwoopScore</h1>
+      <button id="back-btn" class="btn-icon" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 4l-8 6 8 6"/></svg>
+      </button>
+      <h1 class="scoring-title"><span class="brand-swoop">Swoop</span><span class="brand-score">Score</span></h1>
       <div id="game-info"></div>
     </header>
 
@@ -63,8 +71,10 @@
     <button id="add-round" class="btn-primary hidden">+ Add Round</button>
 
     <div id="game-over" class="hidden">
-      <h2 id="winner-text"></h2>
-      <button id="new-game" class="btn-primary">New Game</button>
+      <div class="winner-card">
+        <h2 id="winner-text"></h2>
+        <button id="new-game" class="btn-primary">New Game</button>
+      </div>
     </div>
   </div>
 
