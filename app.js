@@ -192,7 +192,7 @@ function buildHead() {
   $("#grid-head").replaceChildren(headRow);
 }
 
-function renderGrid() {
+function renderGrid(focusRound = 0) {
   const body = $("#grid-body");
   body.replaceChildren();
 
@@ -207,7 +207,7 @@ function renderGrid() {
       const td = document.createElement("td");
       const input = document.createElement("input");
       input.type = "number";
-      input.value = val || "";
+      input.value = val;
       input.dataset.round = r;
       input.dataset.player = p;
       input.addEventListener("input", onScoreInput);
@@ -221,8 +221,8 @@ function renderGrid() {
 
   updateTotals();
 
-  const firstInput = body.querySelector('input[data-round="0"][data-player="0"]');
-  if (firstInput) firstInput.select();
+  const target = body.querySelector(`input[data-round="${focusRound}"][data-player="0"]`);
+  if (target) target.select();
 }
 
 function onScoreInput(e) {
@@ -262,22 +262,23 @@ function updateTotals() {
 
   foot.replaceChildren(tr);
 
-  // Show status message or check for winner
+  // Re-evaluate win state every time
   const status = $("#score-status");
   if (incomplete) {
     status.textContent = "Finish entering scores for all players before results are final.";
     status.classList.remove("hidden");
-    // Hide game-over if it was shown prematurely
-    $("#game-over").classList.add("hidden");
+    hideGameOver();
   } else {
     status.classList.add("hidden");
 
-    if (game.mode === "score" && anyScored) {
-      const someoneHitTarget = totals.some((t) => t >= game.target);
-      if (someoneHitTarget) {
-        const w = findWinner();
-        showGameOver(w.idx, w.score);
-      }
+    const shouldEnd = game.mode === "score" && anyScored &&
+      totals.some((t) => t >= game.target);
+
+    if (shouldEnd) {
+      const w = findWinner();
+      showGameOver(w.idx, w.score);
+    } else {
+      hideGameOver();
     }
   }
 }
@@ -285,7 +286,7 @@ function updateTotals() {
 // Add round (score mode only)
 $("#add-round").addEventListener("click", () => {
   game.rounds.push(new Array(game.players.length).fill(0));
-  renderGrid();
+  renderGrid(game.rounds.length - 1);
 });
 
 // Clear all scores
@@ -297,11 +298,14 @@ $("#clear-all").addEventListener("click", () => {
 });
 
 function showGameOver(winnerIdx, score) {
-  // For "play to score" mode, winnerIdx is passed directly.
-  // For manual end-game or rounds completion, recalculate based on direction.
-  $("#add-round").classList.add("hidden");
+  if (game.mode === "score") $("#add-round").classList.add("hidden");
   $("#game-over").classList.remove("hidden");
   $("#winner-text").textContent = `${game.players[winnerIdx]} wins with ${score} points!`;
+}
+
+function hideGameOver() {
+  $("#game-over").classList.add("hidden");
+  if (game.mode === "score") $("#add-round").classList.remove("hidden");
 }
 
 function findWinner() {
