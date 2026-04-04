@@ -384,7 +384,7 @@ body {
 
 #score-grid th,
 #score-grid td {
-  padding: 0.5rem 0.55rem;
+  padding: 0.4rem 0.25rem;
   text-align: center;
   border-bottom: 1px solid var(--border);
 }
@@ -395,7 +395,7 @@ body {
   color: var(--muted);
   font-size: 0.78rem;
   font-weight: 500;
-  padding-left: 0.75rem;
+  padding-left: 0.5rem;
   white-space: nowrap;
 }
 
@@ -407,7 +407,11 @@ body {
   font-weight: 600;
   color: var(--text-soft);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -445,8 +449,8 @@ body {
 
 /* Grid inputs */
 #score-grid input {
-  width: 52px;
-  padding: 0.3rem 0.2rem;
+  width: 40px;
+  padding: 0.3rem 0.1rem;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
