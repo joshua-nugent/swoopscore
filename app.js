@@ -47,6 +47,14 @@ function saveRecentNames(names) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(unique.slice(0, 20)));
 }
 
+function deleteRecentName(name) {
+  const remaining = getRecentNames().filter(
+    (n) => n.toLowerCase() !== name.toLowerCase()
+  );
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+  renderRecentNames();
+}
+
 function renderRecentNames() {
   const container = $("#recent-names");
   container.replaceChildren();
@@ -54,14 +62,26 @@ function renderRecentNames() {
   if (names.length === 0) return;
 
   names.forEach((name) => {
-    const tile = document.createElement("button");
+    const tile = document.createElement("div");
     tile.className = "name-tile";
-    tile.type = "button";
-    tile.textContent = name;
-    tile.addEventListener("click", () => {
+
+    const nameBtn = document.createElement("button");
+    nameBtn.className = "tile-name";
+    nameBtn.type = "button";
+    nameBtn.textContent = name;
+    nameBtn.addEventListener("click", () => {
       addPlayerWithName(name);
       ensureEmptyRow();
     });
+
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "tile-remove";
+    removeBtn.type = "button";
+    removeBtn.setAttribute("aria-label", `Remove ${name}`);
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => deleteRecentName(name));
+
+    tile.append(nameBtn, removeBtn);
     container.appendChild(tile);
   });
 }

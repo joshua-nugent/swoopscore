@@ -222,22 +222,57 @@ body {
 #recent-names:empty { margin-bottom: 0; }
 
 .name-tile {
-  padding: 0.32rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.32rem 0.5rem 0.32rem 0.8rem;
   border: 1px solid var(--border-light);
   border-radius: 100px;
   background: var(--surface);
-  color: var(--text-soft);
-  font-family: var(--font-body);
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
   transition: all 0.2s;
 }
 
 .name-tile:hover {
   border-color: var(--accent);
-  color: var(--accent-light);
   background: var(--accent-glow);
+}
+
+.tile-name {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-soft);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.name-tile:hover .tile-name { color: var(--accent-light); }
+
+.tile-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.15s;
+}
+
+.tile-remove:hover {
+  opacity: 1;
+  color: var(--danger);
+  background: rgba(212, 86, 78, 0.15);
 }
 
 /* --- Player rows --- */
