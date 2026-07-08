@@ -7,6 +7,26 @@ let game = { mode: "rounds", target: 6, highWins: false, players: [], rounds: []
 // --- Recent names (localStorage) ---
 
 const STORAGE_KEY = "swoopscore_recent_names";
+const GAME_KEY = "swoopscore_current_game";
+
+// --- Persisted game state ---
+// The full game lives only in memory; without this it's lost whenever the
+// browser reloads or discards the tab (common on mobile after inactivity).
+
+function saveGame() {
+  try {
+    localStorage.setItem(GAME_KEY, JSON.stringify(game));
+  } catch (e) {
+    // Fail loud: don't pretend the game is safe if we couldn't store it.
+    console.warn("SwoopScore: could not save game state — progress may be lost on reload.", e);
+  }
+}
+
+function clearSavedGame() {
+  try {
+    localStorage.removeItem(GAME_KEY);
+  } catch { /* nothing to clear */ }
+}
 
 function getRecentNames() {
   try {
@@ -143,6 +163,7 @@ $("#start-game").addEventListener("click", () => {
   if (realNames.length > 0) saveRecentNames(realNames);
 
   showScoring();
+  saveGame();
 });
 
 // --- Scoring screen ---
@@ -151,15 +172,19 @@ function newRound() {
   return new Array(game.players.length).fill(null);
 }
 
-function showScoring() {
-  $("#setup").classList.remove("active");
-  $("#scoring").classList.add("active");
-
+function updateGameInfo() {
   const modeLabel = game.mode === "score"
     ? `First to ${game.target}`
     : `${game.target} rounds`;
   const dirLabel = game.highWins ? "high wins" : "low wins";
   $("#game-info").textContent = `${modeLabel} \u00b7 ${dirLabel}`;
+}
+
+function showScoring() {
+  $("#setup").classList.remove("active");
+  $("#scoring").classList.add("active");
+
+  updateGameInfo();
 
   buildHead();
 
@@ -244,6 +269,7 @@ function onScoreInput(e) {
   }
 
   updateTotals();
+  saveGame();
 }
 
 // Treat null as 0 for summing
@@ -305,6 +331,7 @@ function updateTotals() {
 $("#add-round").addEventListener("click", () => {
   game.rounds.push(newRound());
   renderGrid(game.rounds.length - 1);
+  saveGame();
 });
 
 // Clear all scores
@@ -313,6 +340,7 @@ $("#clear-all").addEventListener("click", () => {
   if (!confirm("Really? This cannot be undone!")) return;
   game.rounds = game.rounds.map((r) => r.map(() => null));
   renderGrid();
+  saveGame();
 });
 
 function showGameOver(winnerIdx, score) {
@@ -343,6 +371,7 @@ function resetToSetup() {
   $("#grid-body").replaceChildren();
   $("#grid-foot").replaceChildren();
   renderRecentNames();
+  clearSavedGame();
 }
 
 $("#new-game").addEventListener("click", resetToSetup);
@@ -350,3 +379,28 @@ $("#new-game").addEventListener("click", resetToSetup);
 $("#back-btn").addEventListener("click", () => {
   if (confirm("End this game and go back to setup?")) resetToSetup();
 });
+
+// --- Restore an in-progress game after a reload / discarded tab ---
+
+function restoreGame() {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem(GAME_KEY));
+  } catch { return; }
+
+  // Only restore something that looks like a real, playable game.
+  if (!saved || !Array.isArray(saved.players) || saved.players.length < 2 ||
+      !Array.isArray(saved.rounds) || saved.rounds.length === 0) return;
+
+  game = saved;
+
+  $("#setup").classList.remove("active");
+  $("#scoring").classList.add("active");
+  if (game.mode === "score") $("#add-round").classList.remove("hidden");
+
+  updateGameInfo();
+  buildHead();
+  renderGrid();
+}
+
+restoreGame();
