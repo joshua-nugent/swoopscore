@@ -72,6 +72,7 @@ function renderRecentNames() {
     nameBtn.addEventListener("click", () => {
       addPlayerWithName(name);
       ensureEmptyRow();
+      updateDeckInfo();
     });
 
     const removeBtn = document.createElement("button");
@@ -151,9 +152,27 @@ function ensureEmptyRow() {
   }
 }
 
+// Swoop uses one 54-card pack (52 + 2 jokers) per 2 players, rounded up:
+// 3-4 players -> 2 decks, 5-6 -> 3 decks, 7-8 -> 4 decks, and so on.
+function decksNeeded(playerCount) {
+  return Math.floor((playerCount - 1) / 2) + 1;
+}
+
+function updateDeckInfo() {
+  const filled = [...$$(".player-name")].filter((inp) => inp.value.trim() !== "").length;
+  const info = $("#deck-info");
+  if (filled < 2) {
+    info.textContent = "";
+    return;
+  }
+  const decks = decksNeeded(filled);
+  info.textContent = `${decks} deck${decks === 1 ? "" : "s"} of cards needed for ${filled} players`;
+}
+
 $("#player-list").addEventListener("input", (e) => {
   if (!e.target.classList.contains("player-name")) return;
   ensureEmptyRow();
+  updateDeckInfo();
 });
 
 $("#player-list").addEventListener("click", (e) => {
@@ -164,7 +183,10 @@ $("#player-list").addEventListener("click", (e) => {
   $$("#player-list .player-name").forEach((inp, i) => {
     inp.placeholder = `Player ${i + 1}`;
   });
+  updateDeckInfo();
 });
+
+updateDeckInfo();
 
 // Start game
 $("#start-game").addEventListener("click", () => {

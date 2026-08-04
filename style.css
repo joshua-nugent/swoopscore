@@ -284,6 +284,13 @@ body {
   animation: fadeUp 0.25s ease-out both;
 }
 
+.deck-info {
+  min-height: 1.1em;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .player-name {
   flex: 1;
   padding: 0.55rem 0.75rem;
