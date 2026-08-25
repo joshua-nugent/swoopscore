@@ -224,10 +224,15 @@ body {
 /* The whole tile is the "add" target apart from a clearly fenced-off remove
    zone — the name and the x used to be 25px and 17px wide, side by side, which
    made a mis-tap delete the name instead of adding the player. */
+/* No flex anywhere inside the tile. As an inline-flex box nested in another
+   flex container its intrinsic width did not account for the remove button's
+   fixed flex-basis in WebKit, so the x was laid out past the pill's right
+   edge — invisible while the tile still clipped, misplaced once it didn't.
+   Two inline-blocks with explicit widths size identically in every engine. */
 .name-tile {
-  display: inline-flex;
-  align-items: stretch;
-  height: 42px;
+  display: inline-block;
+  white-space: nowrap;
+  font-size: 0;
   border: 1px solid var(--border-light);
   border-radius: 100px;
   background: var(--surface);
@@ -242,8 +247,10 @@ body {
 .tile-name {
   -webkit-appearance: none;
   appearance: none;
-  flex: 1 1 auto;
-  align-self: stretch;
+  display: inline-block;
+  vertical-align: middle;
+  height: 40px;
+  line-height: 40px;
   border-radius: 100px 0 0 100px;
   padding: 0 0.7rem 0 0.95rem;
   border: none;
@@ -287,8 +294,9 @@ body {
 .tile-remove {
   -webkit-appearance: none;
   appearance: none;
-  display: block;
-  flex: 0 0 34px;
+  display: inline-block;
+  vertical-align: middle;
+  width: 34px;
   height: 40px;
   line-height: 40px;
   text-align: center;
