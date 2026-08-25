@@ -656,4 +656,117 @@ function restoreGame() {
   renderGrid();
 }
 
+// --- Color themes (localStorage) ---
+// Keep in sync with the [data-theme] blocks in style.css. "ember" is the one
+// theme whose tokens live in :root, so its data-theme value matches no rule —
+// harmless, and it keeps the attribute always set.
+
+const THEME_KEY = "swoopscore_theme";
+const DEFAULT_THEME = "paper";
+
+const THEME_GROUPS = [
+  { group: "Light", themes: [
+    { id: "paper",  label: "Paper",  bg: "#fffdf9", accent: "#c2593c" },
+    { id: "mist",   label: "Mist",   bg: "#ffffff", accent: "#2f8f88" },
+    { id: "bloom",  label: "Bloom",  bg: "#fffcfd", accent: "#a4568c" },
+    { id: "linen",  label: "Linen",  bg: "#f7f5f1", accent: "#4c6b52" },
+    { id: "stone",  label: "Stone",  bg: "#eaeae8", accent: "#3f5d78" },
+    { id: "solar",  label: "Solar",  bg: "#fffbf0", accent: "#1f7fa8" },
+  ] },
+  { group: "Dark", themes: [
+    { id: "ember",    label: "Ember",    bg: "#252238", accent: "#e07a5f" },
+    { id: "dusk",     label: "Dusk",     bg: "#1b2c38", accent: "#4db6ac" },
+    { id: "mono",     label: "Slate",    bg: "#23272b", accent: "#d9b26a" },
+    { id: "midnight", label: "Midnight", bg: "#1a2237", accent: "#8b9dfa" },
+    { id: "moss",     label: "Moss",     bg: "#1d2c22", accent: "#8fc48c" },
+    { id: "cocoa",    label: "Cocoa",    bg: "#2c221d", accent: "#d99a5b" },
+  ] },
+  { group: "Funky", themes: [
+    { id: "neon",      label: "Neon",      bg: "#1a1230", accent: "#ff2fb9" },
+    { id: "vapor",     label: "Vapor",     bg: "#fdf8ff", accent: "#00a3a3" },
+    { id: "terminal",  label: "Terminal",  bg: "#0b1a0e", accent: "#39ff88" },
+    { id: "bubblegum", label: "Bubblegum", bg: "#fffafc", accent: "#e0407f" },
+  ] },
+];
+
+const THEMES = THEME_GROUPS.flatMap((g) => g.themes);
+
+function savedTheme() {
+  try {
+    const id = localStorage.getItem(THEME_KEY);
+    return THEMES.some((t) => t.id === id) ? id : DEFAULT_THEME;
+  } catch { return DEFAULT_THEME; }
+}
+
+function applyTheme(id) {
+  document.documentElement.setAttribute("data-theme", id);
+  $$("#theme-popover .theme-option").forEach((b) => {
+    b.setAttribute("aria-checked", String(b.dataset.theme === id));
+  });
+}
+
+function setTheme(id) {
+  applyTheme(id);
+  try {
+    localStorage.setItem(THEME_KEY, id);
+  } catch (e) {
+    // Fail loud: the theme is applied but won't come back next visit.
+    console.warn("SwoopScore: could not save theme — it will reset on reload.", e);
+  }
+}
+
+function closeThemeMenu() {
+  $("#theme-popover").classList.add("hidden");
+  $("#theme-trigger").setAttribute("aria-expanded", "false");
+}
+
+function themeOption(t) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "theme-option";
+  b.dataset.theme = t.id;
+  b.setAttribute("role", "menuitemradio");
+  b.style.setProperty("--dot-accent", t.accent);
+  b.style.setProperty("--dot-bg", t.bg);
+  const dot = document.createElement("span");
+  dot.className = "theme-dot";
+  b.append(dot, t.label);
+  b.addEventListener("click", () => {
+    setTheme(t.id);
+    closeThemeMenu();
+  });
+  return b;
+}
+
+function buildThemeMenu() {
+  const pop = $("#theme-popover");
+  const nodes = [];
+  for (const { group, themes } of THEME_GROUPS) {
+    const h = document.createElement("div");
+    h.className = "theme-group";
+    h.textContent = group;
+    nodes.push(h, ...themes.map(themeOption));
+  }
+  pop.replaceChildren(...nodes);
+
+  $("#theme-trigger").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const open = pop.classList.toggle("hidden") === false;
+    $("#theme-trigger").setAttribute("aria-expanded", String(open));
+    if (open) pop.scrollTop = 0;
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!pop.classList.contains("hidden") && !e.target.closest(".theme-menu")) closeThemeMenu();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeThemeMenu();
+  });
+
+  applyTheme(savedTheme());
+}
+
+buildThemeMenu();
+
 restoreGame();

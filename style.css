@@ -16,6 +16,11 @@
   --accent-light: #f2a68d;
   --accent-glow: rgba(224, 122, 95, 0.12);
   --accent-glow-strong: rgba(224, 122, 95, 0.25);
+  --halo: rgba(224, 122, 95, 0.04);
+  --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  --on-accent: #fff;
+  --row-alt: rgba(30, 27, 46, 0.5);
+  --grain-opacity: 0.03;
   --border: #2e2b42;
   --border-light: #3a3752;
   --danger: #d4564e;
@@ -25,10 +30,424 @@
   --font-body: "Nunito Sans", sans-serif;
 }
 
+/* --- Color themes ---------------------------------------------------------
+   Each theme redefines only the colour tokens; everything else (radii, fonts)
+   stays in :root. Applied via data-theme on <html>, persisted in localStorage.
+   Keep this list in sync with THEMES in app.js. */
+
+/* --- Light --- */
+
+[data-theme="paper"] {
+  --bg: #f8f5ef;
+  --surface: #efeae0;
+  --card: #fffdf9;
+  --card-hover: #f6f1e7;
+  --text: #23211d;
+  --text-soft: #55504a;
+  --muted: #8b8478;
+  --accent: #c2593c;
+  --accent-light: #a8462d;
+  --accent-glow: rgba(194, 89, 60, 0.10);
+  --accent-glow-strong: rgba(194, 89, 60, 0.20);
+  --halo: rgba(194, 89, 60, 0.05);
+  --border: #e2dacd;
+  --border-light: #cdc3b3;
+  --danger: #b8433c;
+  --row-alt: rgba(232, 224, 210, 0.55);
+  --card-shadow: 0 2px 12px rgba(70, 62, 48, 0.08);
+  --grain-opacity: 0.015;
+}
+
+[data-theme="mist"] {
+  --bg: #f2f5f7;
+  --surface: #e7ecf0;
+  --card: #ffffff;
+  --card-hover: #f0f4f7;
+  --text: #1d2529;
+  --text-soft: #4d585f;
+  --muted: #7d8b93;
+  --accent: #2f8f88;
+  --accent-light: #257670;
+  --accent-glow: rgba(47, 143, 136, 0.10);
+  --accent-glow-strong: rgba(47, 143, 136, 0.20);
+  --halo: rgba(47, 143, 136, 0.05);
+  --border: #dde4e9;
+  --border-light: #c3ced5;
+  --danger: #c0504a;
+  --row-alt: rgba(228, 236, 241, 0.7);
+  --card-shadow: 0 2px 12px rgba(70, 62, 48, 0.08);
+  --grain-opacity: 0.015;
+}
+
+[data-theme="bloom"] {
+  --bg: #faf4f7;
+  --surface: #f2e9ee;
+  --card: #fffcfd;
+  --card-hover: #f8f0f4;
+  --text: #271f24;
+  --text-soft: #595055;
+  --muted: #907f88;
+  --accent: #a4568c;
+  --accent-light: #8c4276;
+  --accent-glow: rgba(164, 86, 140, 0.10);
+  --accent-glow-strong: rgba(164, 86, 140, 0.20);
+  --halo: rgba(164, 86, 140, 0.05);
+  --border: #ebdde4;
+  --border-light: #d6c2cd;
+  --danger: #bd4550;
+  --row-alt: rgba(243, 232, 238, 0.7);
+  --card-shadow: 0 2px 12px rgba(70, 62, 48, 0.08);
+  --grain-opacity: 0.015;
+}
+
+[data-theme="linen"] {
+  --bg: #eceae5;
+  --surface: #e2dfd8;
+  --card: #f7f5f1;
+  --card-hover: #edeae4;
+  --text: #26241f;
+  --text-soft: #524f48;
+  --muted: #837f76;
+  --accent: #4c6b52;
+  --accent-light: #3c5741;
+  --accent-glow: rgba(76, 107, 82, 0.10);
+  --accent-glow-strong: rgba(76, 107, 82, 0.20);
+  --halo: rgba(76, 107, 82, 0.05);
+  --border: #d9d5cc;
+  --border-light: #c1bcb0;
+  --danger: #a94a42;
+  --row-alt: rgba(226, 222, 213, 0.6);
+  --card-shadow: 0 2px 12px rgba(70, 62, 48, 0.08);
+  --grain-opacity: 0.015;
+}
+
+[data-theme="stone"] {
+  --bg: #dcdcda;
+  --surface: #d1d1cf;
+  --card: #eaeae8;
+  --card-hover: #e0e0dd;
+  --text: #222422;
+  --text-soft: #4d504d;
+  --muted: #7c807c;
+  --accent: #3f5d78;
+  --accent-light: #304a61;
+  --accent-glow: rgba(63, 93, 120, 0.10);
+  --accent-glow-strong: rgba(63, 93, 120, 0.20);
+  --halo: rgba(63, 93, 120, 0.05);
+  --border: #c7c7c4;
+  --border-light: #adaeaa;
+  --danger: #a8443f;
+  --row-alt: rgba(214, 214, 211, 0.7);
+  --card-shadow: 0 2px 12px rgba(60, 62, 58, 0.10);
+  --grain-opacity: 0.02;
+}
+
+[data-theme="solar"] {
+  --bg: #fdf6e3;
+  --surface: #f2ead1;
+  --card: #fffbf0;
+  --card-hover: #f7efdc;
+  --text: #3b4b4f;
+  --text-soft: #5c6f73;
+  --muted: #93a1a1;
+  --accent: #1f7fa8;
+  --accent-light: #186787;
+  --accent-glow: rgba(31, 127, 168, 0.10);
+  --accent-glow-strong: rgba(31, 127, 168, 0.20);
+  --halo: rgba(31, 127, 168, 0.05);
+  --border: #e8dfc4;
+  --border-light: #d3c8a8;
+  --danger: #c1483c;
+  --row-alt: rgba(243, 235, 213, 0.6);
+  --card-shadow: 0 2px 12px rgba(110, 95, 55, 0.08);
+  --grain-opacity: 0.018;
+}
+
+/* --- Dark --- */
+
+[data-theme="dusk"] {
+  --bg: #101a22;
+  --surface: #16242e;
+  --card: #1b2c38;
+  --card-hover: #223543;
+  --text: #e8f1f5;
+  --text-soft: #b3c5ce;
+  --muted: #71889a;
+  --accent: #4db6ac;
+  --accent-light: #7fd6cd;
+  --accent-glow: rgba(77, 182, 172, 0.14);
+  --accent-glow-strong: rgba(77, 182, 172, 0.28);
+  --halo: rgba(77, 182, 172, 0.05);
+  --border: #24394a;
+  --border-light: #2f4859;
+  --danger: #e0605a;
+  --row-alt: rgba(16, 26, 34, 0.5);
+  --on-accent: #08131a;
+}
+
+[data-theme="mono"] {
+  --bg: #16181a;
+  --surface: #1d2023;
+  --card: #23272b;
+  --card-hover: #2c3136;
+  --text: #eef0f2;
+  --text-soft: #bcc1c6;
+  --muted: #7e858c;
+  --accent: #d9b26a;
+  --accent-light: #f0cd8e;
+  --accent-glow: rgba(217, 178, 106, 0.13);
+  --accent-glow-strong: rgba(217, 178, 106, 0.26);
+  --halo: rgba(217, 178, 106, 0.05);
+  --border: #2e3338;
+  --border-light: #3b4147;
+  --danger: #d4564e;
+  --row-alt: rgba(22, 24, 26, 0.5);
+  --on-accent: #231c0d;
+}
+
+[data-theme="midnight"] {
+  --bg: #0d1220;
+  --surface: #141b2d;
+  --card: #1a2237;
+  --card-hover: #212b44;
+  --text: #e6ebf7;
+  --text-soft: #b0b9d0;
+  --muted: #6f7a99;
+  --accent: #8b9dfa;
+  --accent-light: #adbcff;
+  --accent-glow: rgba(139, 157, 250, 0.14);
+  --accent-glow-strong: rgba(139, 157, 250, 0.26);
+  --halo: rgba(139, 157, 250, 0.06);
+  --border: #232d47;
+  --border-light: #2f3b59;
+  --danger: #e0616e;
+  --row-alt: rgba(13, 18, 32, 0.5);
+  --on-accent: #0d1220;
+}
+
+[data-theme="moss"] {
+  --bg: #111a14;
+  --surface: #18241c;
+  --card: #1d2c22;
+  --card-hover: #243629;
+  --text: #e9f1ea;
+  --text-soft: #bacbbd;
+  --muted: #7a8d7e;
+  --accent: #8fc48c;
+  --accent-light: #b3ddaf;
+  --accent-glow: rgba(143, 196, 140, 0.13);
+  --accent-glow-strong: rgba(143, 196, 140, 0.26);
+  --halo: rgba(143, 196, 140, 0.05);
+  --border: #26382c;
+  --border-light: #314737;
+  --danger: #d4756a;
+  --row-alt: rgba(17, 26, 20, 0.5);
+  --on-accent: #0f1a12;
+}
+
+[data-theme="cocoa"] {
+  --bg: #1b1512;
+  --surface: #241c18;
+  --card: #2c221d;
+  --card-hover: #372b24;
+  --text: #f3e9e1;
+  --text-soft: #cbbbae;
+  --muted: #95837a;
+  --accent: #d99a5b;
+  --accent-light: #f0b77e;
+  --accent-glow: rgba(217, 154, 91, 0.13);
+  --accent-glow-strong: rgba(217, 154, 91, 0.26);
+  --halo: rgba(217, 154, 91, 0.05);
+  --border: #382b24;
+  --border-light: #48382e;
+  --danger: #d4564e;
+  --row-alt: rgba(27, 21, 18, 0.5);
+  --on-accent: #241609;
+}
+
+/* --- Funky --- */
+
+[data-theme="neon"] {
+  --bg: #0c0a14;
+  --surface: #150f22;
+  --card: #1a1230;
+  --card-hover: #22183d;
+  --text: #f4ecff;
+  --text-soft: #c6b6e0;
+  --muted: #8878a8;
+  --accent: #ff2fb9;
+  --accent-light: #ff74d0;
+  --accent-glow: rgba(255, 47, 185, 0.16);
+  --accent-glow-strong: rgba(255, 47, 185, 0.32);
+  --halo: rgba(0, 229, 255, 0.07);
+  --border: #2a1c4a;
+  --border-light: #3a2765;
+  --danger: #ff4d5e;
+  --row-alt: rgba(12, 10, 20, 0.55);
+}
+
+[data-theme="vapor"] {
+  --bg: #f4ecfb;
+  --surface: #eadff6;
+  --card: #fdf8ff;
+  --card-hover: #f6ecfc;
+  --text: #2a1f38;
+  --text-soft: #5b4a70;
+  --muted: #907fa8;
+  --accent: #00a3a3;
+  --accent-light: #00807f;
+  --accent-glow: rgba(0, 163, 163, 0.10);
+  --accent-glow-strong: rgba(0, 163, 163, 0.20);
+  --halo: rgba(255, 113, 206, 0.08);
+  --border: #e6d8f2;
+  --border-light: #cdb6e0;
+  --danger: #e0397a;
+  --row-alt: rgba(238, 226, 248, 0.7);
+  --on-accent: #f4feff;
+  --card-shadow: 0 2px 14px rgba(120, 70, 160, 0.10);
+  --grain-opacity: 0.015;
+}
+
+[data-theme="terminal"] {
+  --bg: #050a06;
+  --surface: #08120a;
+  --card: #0b1a0e;
+  --card-hover: #0f2413;
+  --text: #c8ffd4;
+  --text-soft: #7fdf95;
+  --muted: #4d9660;
+  --accent: #39ff88;
+  --accent-light: #8bffb8;
+  --accent-glow: rgba(57, 255, 136, 0.12);
+  --accent-glow-strong: rgba(57, 255, 136, 0.24);
+  --halo: rgba(57, 255, 136, 0.06);
+  --border: #122b18;
+  --border-light: #1b3d23;
+  --danger: #ff5f56;
+  --row-alt: rgba(5, 10, 6, 0.6);
+  --on-accent: #04120a;
+}
+
+[data-theme="bubblegum"] {
+  --bg: #fff0f6;
+  --surface: #ffe3ee;
+  --card: #fffafc;
+  --card-hover: #fff0f6;
+  --text: #3d1f2e;
+  --text-soft: #6b4256;
+  --muted: #a67d92;
+  --accent: #e0407f;
+  --accent-light: #c22c68;
+  --accent-glow: rgba(224, 64, 127, 0.10);
+  --accent-glow-strong: rgba(224, 64, 127, 0.20);
+  --halo: rgba(224, 64, 127, 0.06);
+  --border: #ffdbe9;
+  --border-light: #f4bcd2;
+  --danger: #d43a3a;
+  --row-alt: rgba(255, 227, 238, 0.65);
+  --card-shadow: 0 2px 14px rgba(190, 80, 130, 0.10);
+  --grain-opacity: 0.012;
+}
+
+/* --- Theme menu --- */
+
+.theme-menu {
+  position: absolute;
+  top: 1.5rem;
+  right: 0;
+  z-index: 50;
+}
+
+.theme-trigger {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-trigger:active { transform: scale(0.94); }
+.theme-trigger[aria-expanded="true"],
+.theme-trigger:hover { color: var(--accent); border-color: var(--border-light); }
+
+/* The palette's paint blobs pick up the live theme so the button previews it. */
+.theme-trigger .blob-a { fill: var(--accent); }
+.theme-trigger .blob-b { fill: var(--text-soft); }
+.theme-trigger .blob-c { fill: var(--accent-light); }
+
+.theme-popover {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  min-width: 150px;
+  padding: 0.3rem;
+  background: var(--card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  text-align: left;
+  animation: themePop 0.14s ease-out;
+  max-height: min(62vh, 26rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.theme-group {
+  padding: 0.5rem 0.5rem 0.25rem;
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  color: var(--muted);
+}
+
+.theme-group:first-child { padding-top: 0.25rem; }
+
+@keyframes themePop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  background: none;
+  border-radius: 7px;
+  color: var(--text-soft);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.theme-option:hover { background: var(--card-hover); }
+.theme-option[aria-checked="true"] { color: var(--accent); font-weight: 600; }
+
+.theme-dot {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--dot-accent);
+  border: 2px solid var(--dot-bg);
+  box-shadow: 0 0 0 1px var(--border-light);
+}
+
 body {
   font-family: var(--font-body);
   background: var(--bg);
-  background-image: radial-gradient(ellipse at 50% 0%, rgba(224, 122, 95, 0.04) 0%, transparent 60%);
+  background-image: radial-gradient(ellipse at 50% 0%, var(--halo) 0%, transparent 60%);
   color: var(--text);
   min-height: 100dvh;
   padding: 1rem 1rem 3rem;
@@ -43,7 +462,7 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.03;
+  opacity: var(--grain-opacity);
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 200px;
 }
@@ -67,6 +486,10 @@ body {
 /* --- Brand / Title --- */
 
 .brand {
+  /* z-index keeps the theme popover above the animated cards below it: their
+     entrance animations create stacking contexts that would otherwise win. */
+  position: relative;
+  z-index: 20;
   text-align: center;
   padding: 1.5rem 0 1.25rem;
 }
@@ -90,7 +513,7 @@ body {
   border-radius: var(--radius);
   padding: 1.25rem;
   margin-bottom: 0.875rem;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--card-shadow);
 }
 
 .card h2 {
@@ -132,7 +555,7 @@ body {
 }
 
 .toggle.active {
-  color: #fff;
+  color: var(--on-accent);
   font-weight: 600;
 }
 
@@ -145,7 +568,7 @@ body {
   border-radius: 7px;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: translateX(calc(100% + 3px));
-  box-shadow: 0 2px 8px rgba(224, 122, 95, 0.3);
+  box-shadow: 0 2px 8px var(--accent-glow-strong);
 }
 
 .toggle-group:has(.toggle:first-of-type.active) .toggle-indicator {
@@ -429,7 +852,7 @@ body {
   width: 100%;
   padding: 0.8rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   font-family: var(--font-body);
@@ -438,7 +861,7 @@ body {
   cursor: pointer;
   transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
   letter-spacing: 0.01em;
-  box-shadow: 0 2px 10px rgba(224, 122, 95, 0.2);
+  box-shadow: 0 2px 10px var(--accent-glow-strong);
 }
 
 .btn-primary:hover {
@@ -504,7 +927,7 @@ body {
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--card);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--card-shadow);
 }
 
 #score-grid {
@@ -555,7 +978,7 @@ body {
 }
 
 #score-grid tbody tr:nth-child(odd) {
-  background: rgba(30, 27, 46, 0.5);
+  background: var(--row-alt);
 }
 
 #score-grid tbody tr:hover {
@@ -631,7 +1054,7 @@ body {
   padding: 0.5rem 0.75rem;
   margin-bottom: 0.75rem;
   background: var(--accent-glow);
-  border: 1px solid rgba(224, 122, 95, 0.2);
+  border: 1px solid var(--accent-glow-strong);
   border-radius: var(--radius-sm);
 }
 
