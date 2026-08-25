@@ -228,7 +228,6 @@ body {
   display: inline-flex;
   align-items: stretch;
   height: 42px;
-  overflow: hidden;
   border: 1px solid var(--border-light);
   border-radius: 100px;
   background: var(--surface);
@@ -241,8 +240,11 @@ body {
 }
 
 .tile-name {
+  -webkit-appearance: none;
+  appearance: none;
   flex: 1 1 auto;
   align-self: stretch;
+  border-radius: 100px 0 0 100px;
   padding: 0 0.7rem 0 0.95rem;
   border: none;
   background: none;
@@ -278,21 +280,32 @@ body {
 
 .name-tile.used:hover .tile-name { color: var(--text-soft); }
 
+/* Deliberately NOT a flex container: WebKit lays out flex `<button>` content
+   through an anonymous box and centred content can land outside the painted
+   box. A fixed line box with a vertically-aligned SVG behaves the same in
+   every engine, and needs no font glyph. */
 .tile-remove {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
   flex: 0 0 34px;
-  align-self: stretch;
+  height: 40px;
+  line-height: 40px;
+  text-align: center;
+  border-radius: 0 100px 100px 0;
   padding: 0;
   border: none;
   border-left: 1px solid var(--border-light);
   background: transparent;
   color: var(--text-soft);
-  font-size: 1.25rem;
-  line-height: 1;
   cursor: pointer;
   transition: all 0.15s;
+}
+
+.tile-remove svg {
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
 }
 
 .tile-remove:hover {

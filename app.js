@@ -102,6 +102,22 @@ function deleteRecentName(name) {
   showPlayerNotice(`Removed "${name}" from saved names.`);
 }
 
+function closeIcon() {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 14 14");
+  svg.setAttribute("width", "13");
+  svg.setAttribute("height", "13");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M3 3 L11 11 M11 3 L3 11");
+  path.setAttribute("stroke", "currentColor");
+  path.setAttribute("stroke-width", "2");
+  path.setAttribute("stroke-linecap", "round");
+  path.setAttribute("fill", "none");
+  svg.appendChild(path);
+  return svg;
+}
+
 function renderRecentNames() {
   const container = $("#recent-names");
   container.replaceChildren();
@@ -128,7 +144,9 @@ function renderRecentNames() {
     removeBtn.className = "tile-remove";
     removeBtn.type = "button";
     removeBtn.setAttribute("aria-label", `Remove ${name}`);
-    removeBtn.textContent = "×";
+    // Drawn rather than typeset: a text glyph here depends on the loaded font
+    // and on line-height/appearance quirks that differ on mobile.
+    removeBtn.appendChild(closeIcon());
     removeBtn.addEventListener("click", () => deleteRecentName(name));
 
     tile.append(nameBtn, removeBtn);
