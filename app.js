@@ -120,7 +120,6 @@ function renderRecentNames() {
     nameBtn.textContent = name;
     nameBtn.addEventListener("click", () => {
       addPlayerWithName(name);
-      ensureEmptyRow();
       updateDeckInfo();
     });
 
@@ -193,34 +192,23 @@ function appendPlayerRow(value) {
   return input;
 }
 
-function ensureEmptyRow() {
-  const inputs = [...$$(".player-name")];
-  const lastInput = inputs[inputs.length - 1];
-  if (lastInput && lastInput.value.trim() !== "") {
-    appendPlayerRow();
-  }
-}
-
 // Swoop uses one 54-card pack (52 + 2 jokers) per 2 players, rounded up:
 // 3-4 players -> 2 decks, 5-6 -> 3 decks, 7-8 -> 4 decks, and so on.
 function decksNeeded(playerCount) {
   return Math.floor((playerCount - 1) / 2) + 1;
 }
 
+// Counts player slots, not filled names, so the hint is useful before anyone
+// has typed anything — set up N seats, then fill in who's sitting in them.
 function updateDeckInfo() {
-  const filled = [...$$(".player-name")].filter((inp) => inp.value.trim() !== "").length;
-  const info = $("#deck-info");
-  if (filled < 2) {
-    info.textContent = "";
-    return;
-  }
-  const decks = decksNeeded(filled);
-  info.textContent = `${decks} deck${decks === 1 ? "" : "s"} of cards needed for ${filled} players`;
+  const seats = $$("#player-list .player-row").length;
+  const decks = decksNeeded(seats);
+  $("#deck-info").textContent =
+    `${decks} deck${decks === 1 ? "" : "s"} of cards needed for ${seats} players`;
 }
 
-$("#player-list").addEventListener("input", (e) => {
-  if (!e.target.classList.contains("player-name")) return;
-  ensureEmptyRow();
+$("#add-player").addEventListener("click", () => {
+  appendPlayerRow().focus();
   updateDeckInfo();
 });
 
@@ -240,11 +228,9 @@ updateDeckInfo();
 // Start game
 $("#start-game").addEventListener("click", () => {
   const allInputs = [...$$(".player-name")];
-  const filled = allInputs.filter((inp) => inp.value.trim() !== "");
-  if (filled.length < 2) return;
+  if (allInputs.length < 2) return;
 
-  let idx = 1;
-  const names = filled.map((inp) => inp.value.trim() || `Player ${idx++}`);
+  const names = allInputs.map((inp, i) => inp.value.trim() || `Player ${i + 1}`);
 
   game.target = parseInt($("#target").value) || (game.mode === "rounds" ? 6 : 100);
   game.players = names;
