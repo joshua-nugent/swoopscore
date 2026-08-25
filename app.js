@@ -102,6 +102,8 @@ function deleteRecentName(name) {
   );
   localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
   renderRecentNames();
+  // Say so out loud — a tile vanishing with no explanation reads like a bug.
+  showPlayerNotice(`Removed "${name}" from saved names.`);
 }
 
 function renderRecentNames() {
@@ -167,7 +169,14 @@ function addPlayerWithName(name) {
 function showPlayerWarning(text) {
   const warn = $("#player-warning");
   warn.textContent = text;
+  warn.classList.remove("hidden", "notice");
+}
+
+function showPlayerNotice(text) {
+  const warn = $("#player-warning");
+  warn.textContent = text;
   warn.classList.remove("hidden");
+  warn.classList.add("notice");
 }
 
 // Two players sharing a name make the score grid ambiguous, so flag duplicates
