@@ -505,6 +505,13 @@ body {
   transition: all 0.15s;
 }
 
+/* Loudly flag a cell whose contents aren't a number — it isn't being counted. */
+#score-grid input.invalid {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(212, 86, 78, 0.1);
+}
+
 #score-grid input.untouched {
   color: var(--muted);
   opacity: 0.4;
@@ -541,20 +548,53 @@ body {
 
 /* Grid actions */
 .grid-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+/* On a phone the four tools drop to a balanced 2x2 block. */
+@media (max-width: 430px) {
+  .grid-actions { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Compact toolbar buttons — sized for thumbs on a phone. */
+.btn-tool {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.875rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
+  background: var(--card);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-.grid-actions #add-round {
-  flex: 1;
+.btn-tool:hover:not(:disabled) {
+  color: var(--accent-light);
+  border-color: var(--accent);
+  background: var(--accent-glow);
 }
 
-.grid-actions #add-round.hidden + .btn-danger-ghost {
-  width: 100%;
+.btn-tool:active:not(:disabled) { transform: scale(0.97); }
+
+.btn-tool:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .btn-danger-ghost {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.875rem;
   padding: 0.5rem 0.75rem;
   background: transparent;
   color: var(--muted);
@@ -597,9 +637,27 @@ body {
   margin-bottom: 1.25rem;
 }
 
-.winner-card .btn-primary {
-  max-width: 200px;
+.winner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 240px;
   margin: 0 auto;
+}
+
+/* Second-choice action when the winner card offers two paths (a tie). */
+.btn-primary.secondary {
+  background: transparent;
+  color: var(--text-soft);
+  border: 1px solid var(--border-light);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+.btn-primary.secondary:hover {
+  background: var(--card-hover);
+  color: var(--text);
+  box-shadow: none;
 }
 
 /* --- Focus / accessibility --- */

@@ -4,6 +4,55 @@ const $$ = (sel) => document.querySelectorAll(sel);
 // Cell values: null = untouched, 0 = explicit zero, number = scored
 let game = { mode: "rounds", target: 6, highWins: false, players: [], rounds: [] };
 
+// --- Undo ---
+// In-memory only (a reload starts a fresh history, but the game itself is
+// restored from localStorage). Each entry is a snapshot of everything the
+// scoring screen can mutate.
+
+const UNDO_LIMIT = 40;
+let undoStack = [];
+let lastEditKey = null;  // cell whose consecutive keystrokes are one undo step
+let lastCell = null;     // {r, p} of the most recently focused/edited cell
+
+function snapshot() {
+  return JSON.stringify({ rounds: game.rounds, target: game.target });
+}
+
+function pushUndo(state) {
+  undoStack.push(state || snapshot());
+  if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+  refreshToolButtons();
+}
+
+// Group consecutive keystrokes in one cell into a single undo step: only the
+// first keystroke of a new editing session banks the pre-edit state.
+function bankEdit(key, before) {
+  if (key === lastEditKey) return;
+  lastEditKey = key;
+  pushUndo(before);
+}
+
+function undo() {
+  const prev = undoStack.pop();
+  if (prev === undefined) return;
+  const state = JSON.parse(prev);
+  game.rounds = state.rounds;
+  game.target = state.target;
+  lastEditKey = null;
+  updateGameInfo();
+  renderGrid();
+  refreshToolButtons();
+  saveGame();
+}
+
+function refreshToolButtons() {
+  $("#undo").disabled = undoStack.length === 0;
+  const cell = lastCell && game.rounds[lastCell.r];
+  $("#sign-flip").disabled = !cell || cell[lastCell.p] === null ||
+    cell[lastCell.p] === undefined;
+  $("#remove-round").disabled = game.rounds.length <= 1;
+}
+
 // --- Recent names (localStorage) ---
 
 const STORAGE_KEY = "swoopscore_recent_names";
@@ -232,12 +281,13 @@ function showScoring() {
 
   if (game.mode === "rounds") {
     for (let r = 0; r < game.target; r++) game.rounds.push(newRound());
-    $("#add-round").classList.add("hidden");
   } else {
     game.rounds.push(newRound());
-    $("#add-round").classList.remove("hidden");
   }
 
+  undoStack = [];
+  lastEditKey = null;
+  lastCell = null;
   renderGrid();
 }
 
@@ -256,7 +306,7 @@ function buildHead() {
   $("#grid-head").replaceChildren(headRow);
 }
 
-function renderGrid(focusRound = 0) {
+function renderGrid(focusRound = null) {
   const body = $("#grid-body");
   body.replaceChildren();
 
@@ -282,7 +332,12 @@ function renderGrid(focusRound = 0) {
       }
 
       input.addEventListener("input", onScoreInput);
-      input.addEventListener("focus", () => input.select());
+      input.addEventListener("focus", () => {
+        lastEditKey = null;
+        lastCell = { r, p };
+        refreshToolButtons();
+        input.select();
+      });
       td.appendChild(input);
       tr.appendChild(td);
     });
@@ -291,26 +346,42 @@ function renderGrid(focusRound = 0) {
   });
 
   updateTotals();
+  refreshToolButtons();
 
+  if (focusRound === null) return;
   const target = body.querySelector(`input[data-round="${focusRound}"][data-player="0"]`);
   if (target) target.select();
 }
 
 function onScoreInput(e) {
-  const r = parseInt(e.target.dataset.round);
-  const p = parseInt(e.target.dataset.player);
-  const raw = e.target.value.trim();
+  const input = e.target;
+  const r = parseInt(input.dataset.round);
+  const p = parseInt(input.dataset.player);
+  bankEdit(`${r},${p}`, snapshot());
+  lastCell = { r, p };
 
-  if (raw === "") {
-    // Cleared the input — back to untouched
+  const raw = input.value.trim();
+  // A number input reports "" for unparseable text, so ask it directly rather
+  // than silently storing a 0 for something the player never typed.
+  const bad = input.validity && input.validity.badInput;
+  const n = raw === "" ? null : Number(raw);
+
+  if (bad || (raw !== "" && !Number.isFinite(n))) {
+    input.classList.add("invalid");
+    input.classList.remove("untouched");
     game.rounds[r][p] = null;
-    e.target.classList.add("untouched");
+  } else if (raw === "") {
+    // Cleared the input (or mid-typing a lone "-") — back to untouched
+    input.classList.remove("invalid");
+    input.classList.add("untouched");
+    game.rounds[r][p] = null;
   } else {
-    game.rounds[r][p] = parseInt(raw) || 0;
-    e.target.classList.remove("untouched");
+    input.classList.remove("invalid", "untouched");
+    game.rounds[r][p] = n;
   }
 
   updateTotals();
+  refreshToolButtons();
   saveGame();
 }
 
@@ -338,6 +409,9 @@ function updateTotals() {
   });
 
   const anyEntered = game.rounds.some((round) => round.some((v) => v !== null));
+  const allEntered = game.rounds.length > 0 &&
+    game.rounds.every((round) => round.every((v) => v !== null));
+  const badCells = $$("#grid-body input.invalid").length;
   const bestTotal = game.highWins ? Math.max(...totals) : Math.min(...totals);
 
   totals.forEach((total) => {
@@ -350,69 +424,143 @@ function updateTotals() {
   foot.replaceChildren(tr);
 
   const status = $("#score-status");
-  if (incomplete) {
+  if (badCells > 0) {
+    status.textContent = badCells === 1
+      ? "A score isn't a valid number — that cell is not being counted."
+      : `${badCells} scores aren't valid numbers — those cells are not being counted.`;
+    status.classList.remove("hidden");
+    hideGameOver();
+  } else if (incomplete) {
     status.textContent = "Finish entering scores for all players before results are final.";
     status.classList.remove("hidden");
     hideGameOver();
   } else {
     status.classList.add("hidden");
 
-    const shouldEnd = game.mode === "score" && anyEntered &&
-      totals.some((t) => t >= game.target);
+    const shouldEnd = game.mode === "score"
+      ? anyEntered && totals.some((t) => t >= game.target)
+      : allEntered;
 
     if (shouldEnd) {
-      const w = findWinner();
-      showGameOver(w.idx, w.score);
+      showGameOver();
     } else {
       hideGameOver();
     }
   }
 }
 
-// Add round (score mode only)
-$("#add-round").addEventListener("click", () => {
+function addRound() {
+  pushUndo();
+  lastEditKey = null;
   game.rounds.push(newRound());
+  // In rounds mode the target IS the round count, so keep the header honest.
+  if (game.mode === "rounds") game.target = game.rounds.length;
+  updateGameInfo();
   renderGrid(game.rounds.length - 1);
+  saveGame();
+}
+
+$("#add-round").addEventListener("click", addRound);
+
+$("#remove-round").addEventListener("click", () => {
+  if (game.rounds.length <= 1) return;
+  const last = game.rounds[game.rounds.length - 1];
+  if (last.some((v) => v !== null) &&
+      !confirm(`Remove round ${game.rounds.length}? Its scores will be deleted.`)) return;
+
+  pushUndo();
+  lastEditKey = null;
+  game.rounds.pop();
+  if (game.mode === "rounds") game.target = game.rounds.length;
+  if (lastCell && lastCell.r >= game.rounds.length) lastCell = null;
+  updateGameInfo();
+  renderGrid();
+  saveGame();
+});
+
+$("#undo").addEventListener("click", undo);
+
+// Mobile numeric keypads don't offer a minus key, so give the focused cell a
+// sign toggle. pointerdown is cancelled so the cell keeps focus through the tap.
+$("#sign-flip").addEventListener("pointerdown", (e) => e.preventDefault());
+$("#sign-flip").addEventListener("click", () => {
+  if (!lastCell) return;
+  const { r, p } = lastCell;
+  const cur = game.rounds[r] && game.rounds[r][p];
+  if (cur === null || cur === undefined) return;
+
+  pushUndo();
+  lastEditKey = null;
+  const flipped = -cur;
+  game.rounds[r][p] = flipped;
+  const input = $(`#grid-body input[data-round="${r}"][data-player="${p}"]`);
+  if (input) {
+    input.value = flipped;
+    input.classList.remove("untouched", "invalid");
+  }
+  updateTotals();
   saveGame();
 });
 
 // Clear all scores
 $("#clear-all").addEventListener("click", () => {
   if (!confirm("This will erase ALL scores. Are you sure?")) return;
-  if (!confirm("Really? This cannot be undone!")) return;
+  pushUndo();
+  lastEditKey = null;
   game.rounds = game.rounds.map((r) => r.map(() => null));
   renderGrid();
   saveGame();
 });
 
-function showGameOver(winnerIdx, score) {
-  if (game.mode === "score") $("#add-round").classList.add("hidden");
+function listNames(names) {
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+}
+
+function showGameOver() {
+  const { idxs, score } = findWinners();
+  const names = idxs.map((i) => game.players[i]);
+  const pts = `${score} point${Math.abs(score) === 1 ? "" : "s"}`;
+  const tie = idxs.length > 1;
+
+  $("#winner-text").textContent = tie
+    ? `It's a tie! ${listNames(names)} are tied at ${pts}.`
+    : `${names[0]} wins with ${pts}!`;
+
+  $("#bonus-round").classList.toggle("hidden", !tie);
+  $("#new-game").classList.toggle("secondary", tie);
   $("#game-over").classList.remove("hidden");
-  $("#winner-text").textContent = `${game.players[winnerIdx]} wins with ${score} points!`;
 }
 
 function hideGameOver() {
   $("#game-over").classList.add("hidden");
-  if (game.mode === "score") $("#add-round").classList.remove("hidden");
 }
 
-function findWinner() {
+// Every player sharing the best total — ties are real and must be shown.
+function findWinners() {
   const totals = game.players.map((_, p) =>
     game.rounds.reduce((sum, round) => sum + cellValue(round[p]), 0)
   );
   const best = game.highWins ? Math.max(...totals) : Math.min(...totals);
-  const idx = totals.indexOf(best);
-  return { idx, score: best };
+  const idxs = totals.reduce((acc, t, i) => (t === best ? [...acc, i] : acc), []);
+  return { idxs, score: best };
 }
+
+$("#bonus-round").addEventListener("click", () => {
+  hideGameOver();
+  addRound();
+});
 
 function resetToSetup() {
   $("#scoring").classList.remove("active");
   $("#setup").classList.add("active");
   $("#game-over").classList.add("hidden");
-  $("#add-round").classList.add("hidden");
   $("#grid-body").replaceChildren();
   $("#grid-foot").replaceChildren();
   renderRecentNames();
+  undoStack = [];
+  lastEditKey = null;
+  lastCell = null;
   clearSavedGame();
 }
 
@@ -438,8 +586,10 @@ function restoreGame() {
 
   $("#setup").classList.remove("active");
   $("#scoring").classList.add("active");
-  if (game.mode === "score") $("#add-round").classList.remove("hidden");
 
+  undoStack = [];
+  lastEditKey = null;
+  lastCell = null;
   updateGameInfo();
   buildHead();
   renderGrid();

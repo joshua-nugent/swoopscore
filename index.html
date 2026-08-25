@@ -80,14 +80,24 @@
     <p id="score-status" class="score-status hidden"></p>
 
     <div class="grid-actions">
-      <button id="add-round" class="btn-primary hidden">+ Add Round</button>
-      <button id="clear-all" class="btn-danger-ghost">Clear All Scores</button>
+      <button id="undo" class="btn-tool" disabled>
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h7a3.5 3.5 0 1 1 0 7H6"/><path d="M5.5 3.5 2.5 6.5l3 3"/></svg>
+        Undo
+      </button>
+      <button id="sign-flip" class="btn-tool" title="Flip the sign of the selected score" aria-label="Flip the sign of the selected score" disabled>&plusmn; Sign</button>
+      <button id="add-round" class="btn-tool">+ Round</button>
+      <button id="remove-round" class="btn-tool">&minus; Round</button>
     </div>
+
+    <button id="clear-all" class="btn-danger-ghost">Clear All Scores</button>
 
     <div id="game-over" class="hidden">
       <div class="winner-card">
         <h2 id="winner-text"></h2>
-        <button id="new-game" class="btn-primary">New Game</button>
+        <div class="winner-actions">
+          <button id="bonus-round" class="btn-primary hidden">Play a Bonus Round</button>
+          <button id="new-game" class="btn-primary">New Game</button>
+        </div>
       </div>
     </div>
   </div>
