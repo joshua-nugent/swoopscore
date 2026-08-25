@@ -113,14 +113,17 @@ function renderRecentNames() {
   names.forEach((name) => {
     const tile = document.createElement("div");
     tile.className = "name-tile";
+    tile.dataset.name = name;
 
     const nameBtn = document.createElement("button");
     nameBtn.className = "tile-name";
     nameBtn.type = "button";
     nameBtn.textContent = name;
     nameBtn.addEventListener("click", () => {
-      addPlayerWithName(name);
+      // On refusal the warning is already up; refreshing would wipe it.
+      if (!addPlayerWithName(name)) return;
       updateDeckInfo();
+      refreshPlayerState();
     });
 
     const removeBtn = document.createElement("button");
@@ -133,15 +136,76 @@ function renderRecentNames() {
     tile.append(nameBtn, removeBtn);
     container.appendChild(tile);
   });
+
+  refreshPlayerState();
+}
+
+function nameKey(name) {
+  return name.trim().toLowerCase();
+}
+
+function seatedNames() {
+  return [...$$(".player-name")]
+    .map((inp) => inp.value.trim())
+    .filter((v) => v !== "");
 }
 
 function addPlayerWithName(name) {
+  if (seatedNames().some((n) => nameKey(n) === nameKey(name))) {
+    showPlayerWarning(`${name} is already in this game.`);
+    return false;
+  }
   const emptyInput = [...$$(".player-name")].find((inp) => inp.value.trim() === "");
   if (emptyInput) {
     emptyInput.value = name;
-    return;
+    return true;
   }
   appendPlayerRow(name);
+  return true;
+}
+
+function showPlayerWarning(text) {
+  const warn = $("#player-warning");
+  warn.textContent = text;
+  warn.classList.remove("hidden");
+}
+
+// Two players sharing a name make the score grid ambiguous, so flag duplicates
+// as they are typed and grey out recent-name tiles that are already seated.
+// Returns true when the roster is usable.
+function refreshPlayerState() {
+  const inputs = [...$$(".player-name")];
+  const counts = new Map();
+  inputs.forEach((inp) => {
+    const key = nameKey(inp.value);
+    if (key) counts.set(key, (counts.get(key) || 0) + 1);
+  });
+
+  const dupes = [];
+  inputs.forEach((inp) => {
+    const value = inp.value.trim();
+    const isDupe = value !== "" && counts.get(nameKey(value)) > 1;
+    inp.classList.toggle("dupe", isDupe);
+    if (isDupe && !dupes.some((n) => nameKey(n) === nameKey(value))) dupes.push(value);
+  });
+
+  const taken = new Set(inputs.map((inp) => nameKey(inp.value)).filter(Boolean));
+  $$("#recent-names .name-tile").forEach((tile) => {
+    const used = taken.has(nameKey(tile.dataset.name));
+    tile.classList.toggle("used", used);
+    tile.querySelector(".tile-name").disabled = used;
+  });
+
+  if (dupes.length === 0) {
+    $("#player-warning").classList.add("hidden");
+    return true;
+  }
+  showPlayerWarning(
+    dupes.length === 1
+      ? `Two players are named "${dupes[0]}" — give them different names.`
+      : `These names are used more than once: ${dupes.join(", ")}.`
+  );
+  return false;
 }
 
 renderRecentNames();
@@ -210,6 +274,12 @@ function updateDeckInfo() {
 $("#add-player").addEventListener("click", () => {
   appendPlayerRow().focus();
   updateDeckInfo();
+  refreshPlayerState();
+});
+
+$("#player-list").addEventListener("input", (e) => {
+  if (!e.target.classList.contains("player-name")) return;
+  refreshPlayerState();
 });
 
 $("#player-list").addEventListener("click", (e) => {
@@ -221,6 +291,7 @@ $("#player-list").addEventListener("click", (e) => {
     inp.placeholder = `Player ${i + 1}`;
   });
   updateDeckInfo();
+  refreshPlayerState();
 });
 
 updateDeckInfo();
@@ -229,8 +300,18 @@ updateDeckInfo();
 $("#start-game").addEventListener("click", () => {
   const allInputs = [...$$(".player-name")];
   if (allInputs.length < 2) return;
+  if (!refreshPlayerState()) {
+    const firstDupe = $(".player-name.dupe");
+    if (firstDupe) firstDupe.focus();
+    return;
+  }
 
   const names = allInputs.map((inp, i) => inp.value.trim() || `Player ${i + 1}`);
+  // A typed name can still collide with an unnamed seat's "Player N" fallback.
+  if (new Set(names.map(nameKey)).size !== names.length) {
+    showPlayerWarning("Two seats would end up with the same name — rename one.");
+    return;
+  }
 
   game.target = parseInt($("#target").value) || (game.mode === "rounds" ? 6 : 100);
   game.players = names;

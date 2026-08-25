@@ -251,6 +251,22 @@ body {
 
 .name-tile:hover .tile-name { color: var(--accent-light); }
 
+/* Already seated — nothing to add. */
+.name-tile.used {
+  opacity: 0.35;
+}
+
+.name-tile.used:hover {
+  border-color: var(--border-light);
+  background: var(--surface);
+}
+
+.name-tile.used .tile-name {
+  cursor: default;
+}
+
+.name-tile.used:hover .tile-name { color: var(--text-soft); }
+
 .tile-remove {
   display: flex;
   align-items: center;
@@ -308,6 +324,13 @@ body {
 
 .btn-add-player:active { transform: scale(0.99); }
 
+.player-warning {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
 .deck-info {
   min-height: 1.1em;
   margin-top: 0.75rem;
@@ -330,6 +353,12 @@ body {
 .player-name::placeholder {
   color: var(--muted);
   font-weight: 400;
+}
+
+/* A name typed into two seats — the score grid can't tell them apart. */
+.player-name.dupe {
+  border-color: var(--danger);
+  background: rgba(212, 86, 78, 0.08);
 }
 
 .player-name:focus {
