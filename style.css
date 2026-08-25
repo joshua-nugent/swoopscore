@@ -259,7 +259,11 @@ body {
 
 /* Already seated — nothing to add. */
 .name-tile.used {
-  opacity: 0.35;
+  border-color: var(--border);
+}
+
+.name-tile.used .tile-name {
+  opacity: 0.4;
 }
 
 .name-tile.used:hover {
@@ -284,8 +288,8 @@ body {
   border: none;
   border-left: 1px solid var(--border-light);
   background: transparent;
-  color: var(--muted);
-  font-size: 1rem;
+  color: var(--text-soft);
+  font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
   transition: all 0.15s;
@@ -613,14 +617,9 @@ body {
 /* Grid actions */
 .grid-actions {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.4rem;
   margin-bottom: 0.5rem;
-}
-
-/* On a phone the four tools drop to a balanced 2x2 block. */
-@media (max-width: 430px) {
-  .grid-actions { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* Compact toolbar buttons — sized for thumbs on a phone. */

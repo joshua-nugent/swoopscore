@@ -12,7 +12,6 @@ let game = { mode: "rounds", target: 6, highWins: false, players: [], rounds: []
 const UNDO_LIMIT = 40;
 let undoStack = [];
 let lastEditKey = null;  // cell whose consecutive keystrokes are one undo step
-let lastCell = null;     // {r, p} of the most recently focused/edited cell
 
 function snapshot() {
   return JSON.stringify({ rounds: game.rounds, target: game.target });
@@ -47,9 +46,6 @@ function undo() {
 
 function refreshToolButtons() {
   $("#undo").disabled = undoStack.length === 0;
-  const cell = lastCell && game.rounds[lastCell.r];
-  $("#sign-flip").disabled = !cell || cell[lastCell.p] === null ||
-    cell[lastCell.p] === undefined;
   $("#remove-round").disabled = game.rounds.length <= 1;
 }
 
@@ -363,7 +359,6 @@ function showScoring() {
 
   undoStack = [];
   lastEditKey = null;
-  lastCell = null;
   renderGrid();
 }
 
@@ -410,8 +405,6 @@ function renderGrid(focusRound = null) {
       input.addEventListener("input", onScoreInput);
       input.addEventListener("focus", () => {
         lastEditKey = null;
-        lastCell = { r, p };
-        refreshToolButtons();
         input.select();
       });
       td.appendChild(input);
@@ -434,7 +427,6 @@ function onScoreInput(e) {
   const r = parseInt(input.dataset.round);
   const p = parseInt(input.dataset.player);
   bankEdit(`${r},${p}`, snapshot());
-  lastCell = { r, p };
 
   const raw = input.value.trim();
   // A number input reports "" for unparseable text, so ask it directly rather
@@ -548,35 +540,12 @@ $("#remove-round").addEventListener("click", () => {
   lastEditKey = null;
   game.rounds.pop();
   if (game.mode === "rounds") game.target = game.rounds.length;
-  if (lastCell && lastCell.r >= game.rounds.length) lastCell = null;
   updateGameInfo();
   renderGrid();
   saveGame();
 });
 
 $("#undo").addEventListener("click", undo);
-
-// Mobile numeric keypads don't offer a minus key, so give the focused cell a
-// sign toggle. pointerdown is cancelled so the cell keeps focus through the tap.
-$("#sign-flip").addEventListener("pointerdown", (e) => e.preventDefault());
-$("#sign-flip").addEventListener("click", () => {
-  if (!lastCell) return;
-  const { r, p } = lastCell;
-  const cur = game.rounds[r] && game.rounds[r][p];
-  if (cur === null || cur === undefined) return;
-
-  pushUndo();
-  lastEditKey = null;
-  const flipped = -cur;
-  game.rounds[r][p] = flipped;
-  const input = $(`#grid-body input[data-round="${r}"][data-player="${p}"]`);
-  if (input) {
-    input.value = flipped;
-    input.classList.remove("untouched", "invalid");
-  }
-  updateTotals();
-  saveGame();
-});
 
 // Clear all scores
 $("#clear-all").addEventListener("click", () => {
@@ -636,7 +605,6 @@ function resetToSetup() {
   renderRecentNames();
   undoStack = [];
   lastEditKey = null;
-  lastCell = null;
   clearSavedGame();
 }
 
@@ -665,7 +633,6 @@ function restoreGame() {
 
   undoStack = [];
   lastEditKey = null;
-  lastCell = null;
   updateGameInfo();
   buildHead();
   renderGrid();
