@@ -921,8 +921,15 @@ body {
 
 /* --- Score grid --- */
 
+/* The grid is its own scroll surface so the sticky header below has something
+   to stick to: `overflow-x: auto` alone forces overflow-y to `auto` as well,
+   and an unbounded wrapper never scrolls vertically, which makes `top: 0`
+   inert. max() keeps the pane usable if the viewport is very short. */
 .grid-wrapper {
-  overflow-x: auto;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: max(12rem, calc(100dvh - 11rem));
+  overscroll-behavior: contain;
   margin-bottom: 0.875rem;
   border-radius: var(--radius);
   border: 1px solid var(--border);
@@ -969,6 +976,9 @@ body {
   position: sticky;
   top: 0;
   z-index: 2;
+  /* With border-collapse the shared bottom border belongs to the row below and
+     scrolls away under the pinned header, so draw it on the cell itself. */
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 
 /* Body rows */
