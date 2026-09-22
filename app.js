@@ -656,10 +656,10 @@ function restoreGame() {
   renderGrid();
 }
 
-// --- Color themes (localStorage) ---
-// Keep in sync with the [data-theme] blocks in style.css. "ember" is the one
-// theme whose tokens live in :root, so its data-theme value matches no rule —
-// harmless, and it keeps the attribute always set.
+// --- Color + text themes (localStorage) ---
+// Keep in sync with the [data-theme] / [data-font] blocks in style.css.
+// "ember" and "rounded" are the pair whose tokens live in :root, so their
+// attribute values match no rule — harmless, and it keeps the attributes set.
 
 const THEME_KEY = "swoopscore_theme";
 const DEFAULT_THEME = "paper";
@@ -691,82 +691,131 @@ const THEME_GROUPS = [
 
 const THEMES = THEME_GROUPS.flatMap((g) => g.themes);
 
-function savedTheme() {
+const FONT_KEY = "swoopscore_font";
+const DEFAULT_FONT = "rounded";
+
+// `sample` mirrors the title family/weight/scale from the [data-font] block so
+// each row in the menu is set in the font it selects.
+const FONT_THEMES = [
+  { id: "rounded",  label: "Rounded",  sample: ['"Quicksand", sans-serif', 700, 1] },
+  { id: "robot",    label: "Robot",    sample: ['"Audiowide", sans-serif', 400, 0.91] },
+  { id: "sport",    label: "Sport",    sample: ['"Bungee", sans-serif', 400, 0.91] },
+  { id: "classic",  label: "Classic",  sample: ['"Abril Fatface", serif', 400, 1] },
+  { id: "terminal", label: "Terminal", sample: ['"VT323", monospace', 400, 1.25] },
+];
+
+function savedChoice(key, list, fallback) {
   try {
-    const id = localStorage.getItem(THEME_KEY);
-    return THEMES.some((t) => t.id === id) ? id : DEFAULT_THEME;
-  } catch { return DEFAULT_THEME; }
+    const id = localStorage.getItem(key);
+    return list.some((t) => t.id === id) ? id : fallback;
+  } catch { return fallback; }
 }
 
-function applyTheme(id) {
-  document.documentElement.setAttribute("data-theme", id);
-  $$("#theme-popover .theme-option").forEach((b) => {
-    b.setAttribute("aria-checked", String(b.dataset.theme === id));
-  });
-}
-
-function setTheme(id) {
-  applyTheme(id);
+function persist(key, id, what) {
   try {
-    localStorage.setItem(THEME_KEY, id);
+    localStorage.setItem(key, id);
   } catch (e) {
-    // Fail loud: the theme is applied but won't come back next visit.
-    console.warn("SwoopScore: could not save theme — it will reset on reload.", e);
+    // Fail loud: it is applied but won't come back next visit.
+    console.warn(`SwoopScore: could not save ${what} — it will reset on reload.`, e);
   }
 }
 
-function closeThemeMenu() {
-  $("#theme-popover").classList.add("hidden");
-  $("#theme-trigger").setAttribute("aria-expanded", "false");
+function applyChoice(attr, popoverId, dataKey, id) {
+  document.documentElement.setAttribute(attr, id);
+  $$(`#${popoverId} .picker-option`).forEach((b) => {
+    b.setAttribute("aria-checked", String(b.dataset[dataKey] === id));
+  });
 }
 
-function themeOption(t) {
+const applyTheme = (id) => applyChoice("data-theme", "theme-popover", "theme", id);
+const applyFont  = (id) => applyChoice("data-font", "font-popover", "font", id);
+
+function setTheme(id) { applyTheme(id); persist(THEME_KEY, id, "theme"); }
+function setFont(id)  { applyFont(id);  persist(FONT_KEY, id, "text theme"); }
+
+function closeMenus(except) {
+  $$(".picker-popover").forEach((pop) => {
+    if (pop === except) return;
+    pop.classList.add("hidden");
+    pop.previousElementSibling.setAttribute("aria-expanded", "false");
+  });
+}
+
+function pickerOption(dataKey, id, label, decorate, onPick) {
   const b = document.createElement("button");
   b.type = "button";
-  b.className = "theme-option";
-  b.dataset.theme = t.id;
+  b.className = "picker-option";
+  b.dataset[dataKey] = id;
   b.setAttribute("role", "menuitemradio");
-  b.style.setProperty("--dot-accent", t.accent);
-  b.style.setProperty("--dot-bg", t.bg);
-  const dot = document.createElement("span");
-  dot.className = "theme-dot";
-  b.append(dot, t.label);
+  decorate(b, label);
   b.addEventListener("click", () => {
-    setTheme(t.id);
-    closeThemeMenu();
+    onPick(id);
+    closeMenus();
   });
   return b;
 }
 
-function buildThemeMenu() {
-  const pop = $("#theme-popover");
-  const nodes = [];
-  for (const { group, themes } of THEME_GROUPS) {
-    const h = document.createElement("div");
-    h.className = "theme-group";
-    h.textContent = group;
-    nodes.push(h, ...themes.map(themeOption));
-  }
-  pop.replaceChildren(...nodes);
+function themeOption(t) {
+  return pickerOption("theme", t.id, t.label, (b, label) => {
+    b.style.setProperty("--dot-accent", t.accent);
+    b.style.setProperty("--dot-bg", t.bg);
+    const dot = document.createElement("span");
+    dot.className = "picker-dot";
+    b.append(dot, label);
+  }, setTheme);
+}
 
-  $("#theme-trigger").addEventListener("click", (e) => {
+function fontOption(f) {
+  return pickerOption("font", f.id, f.label, (b, label) => {
+    const [family, weight, scale] = f.sample;
+    b.style.setProperty("--opt-font", family);
+    b.style.setProperty("--opt-weight", weight);
+    b.style.setProperty("--opt-scale", scale);
+    const sample = document.createElement("span");
+    sample.className = "opt-sample";
+    sample.textContent = label;
+    b.append(sample);
+  }, setFont);
+}
+
+function wireTrigger(triggerId, popoverId) {
+  const trigger = $(`#${triggerId}`);
+  const pop = $(`#${popoverId}`);
+  trigger.addEventListener("click", (e) => {
     e.stopPropagation();
     const open = pop.classList.toggle("hidden") === false;
-    $("#theme-trigger").setAttribute("aria-expanded", String(open));
+    closeMenus(pop);
+    trigger.setAttribute("aria-expanded", String(open));
     if (open) pop.scrollTop = 0;
   });
+}
+
+function buildMenus() {
+  const themeNodes = [];
+  for (const { group, themes } of THEME_GROUPS) {
+    const h = document.createElement("div");
+    h.className = "picker-group";
+    h.textContent = group;
+    themeNodes.push(h, ...themes.map(themeOption));
+  }
+  $("#theme-popover").replaceChildren(...themeNodes);
+  $("#font-popover").replaceChildren(...FONT_THEMES.map(fontOption));
+
+  wireTrigger("theme-trigger", "theme-popover");
+  wireTrigger("font-trigger", "font-popover");
 
   document.addEventListener("click", (e) => {
-    if (!pop.classList.contains("hidden") && !e.target.closest(".theme-menu")) closeThemeMenu();
+    if (!e.target.closest(".picker")) closeMenus();
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeThemeMenu();
+    if (e.key === "Escape") closeMenus();
   });
 
-  applyTheme(savedTheme());
+  applyTheme(savedChoice(THEME_KEY, THEMES, DEFAULT_THEME));
+  applyFont(savedChoice(FONT_KEY, FONT_THEMES, DEFAULT_FONT));
 }
 
-buildThemeMenu();
+buildMenus();
 
 restoreGame();
