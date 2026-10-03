@@ -821,11 +821,11 @@ buildMenus();
 restoreGame();
 
 // --- Birthday splash ---
-// Keyed by local "MM-DD". Shown once per device per day; add "#birthday" to
-// the URL to preview it on any day.
+// Keyed by local "MM-DD". Shown on every page load that day (starting a new
+// game doesn't reload, so it won't interrupt play); add "#birthday" to the URL
+// to preview it on any day.
 
 const BIRTHDAYS = { "10-03": "Danielle" };
-const BDAY_SEEN_KEY = "swoopscore_bday_seen";
 const BDAY_EMOJI = ["🎉", "🥳", "🎂", "🎈", "🦄", "🍰", "🤪", "🎁"];
 const BDAY_COLORS = ["var(--accent)", "#d9822b", "#2f8f88", "#a4568c", "#4f6fc4"];
 
@@ -835,16 +835,6 @@ function showBirthday() {
   const preview = location.hash === "#birthday";
   const name = preview ? Object.values(BIRTHDAYS)[0] : BIRTHDAYS[today];
   if (!name) return;
-
-  const stamp = `${now.getFullYear()}-${today}`;
-  if (!preview) {
-    try {
-      if (localStorage.getItem(BDAY_SEEN_KEY) === stamp) return;
-      localStorage.setItem(BDAY_SEEN_KEY, stamp);
-    } catch (e) {
-      console.warn("Birthday splash: can't remember it was shown, so it may repeat today.", e);
-    }
-  }
 
   const el = (tag, cls, text) => {
     const e = document.createElement(tag);
