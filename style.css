@@ -1279,3 +1279,64 @@ button:focus-visible {
 input[type="number"] { -moz-appearance: textfield; }
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+/* --- Birthday splash ------------------------------------------------------
+   Shown by showBirthday() in app.js. Only transform/opacity animate, and
+   everything but the slow emoji orbit stops on its own. */
+
+.bday {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--bg) 93%, transparent);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  animation: bday-in 0.3s ease both;
+}
+.bday.out { animation: bday-out 0.35s ease forwards; }
+@keyframes bday-in { from { opacity: 0; } }
+@keyframes bday-out { to { opacity: 0; visibility: hidden; } }
+
+.bday-msg { position: relative; z-index: 1; text-align: center; padding: 0 1rem; }
+.bday-hb, .bday-tap {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.bday-hb { font-size: calc(0.95rem * var(--fs-display)); color: var(--text-soft); }
+.bday-name {
+  font-family: var(--font-title);
+  font-weight: var(--title-weight);
+  font-size: calc(2.6rem * var(--fs-title));
+  line-height: 1.15;
+  margin: 0.1em 0 0.2em;
+}
+.bday-name span { display: inline-block; animation: bday-drop 0.6s cubic-bezier(.3, 1.8, .5, 1) both; }
+@keyframes bday-drop { from { transform: translateY(-60px) scale(0.5); opacity: 0; } }
+.bday-rule { font-size: calc(0.95rem * var(--fs-body)); color: var(--text-soft); animation: bday-in 0.5s ease 1s both; }
+.bday-tap { margin-top: 0.9rem; font-size: calc(0.7rem * var(--fs-display)); color: var(--muted); }
+
+/* Each emoji is translated out to the ring, the ring spins, and the inner
+   <b> counter-spins so the emoji stay upright. */
+.bday-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  animation: bday-spin 14s linear infinite;
+}
+.bday-orbit span { position: absolute; font-size: 1.8rem; line-height: 1; margin: -0.5em 0 0 -0.5em; }
+.bday-orbit b { display: block; font-weight: 400; animation: bday-spin 14s linear infinite reverse; }
+@keyframes bday-spin { to { transform: rotate(360deg); } }
+
+.bday-confetti { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bday, .bday * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}

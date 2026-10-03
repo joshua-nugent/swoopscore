@@ -819,3 +819,105 @@ function buildMenus() {
 buildMenus();
 
 restoreGame();
+
+// --- Birthday splash ---
+// Keyed by local "MM-DD". Shown once per device per day; add "#birthday" to
+// the URL to preview it on any day.
+
+const BIRTHDAYS = { "10-03": "Danielle" };
+const BDAY_SEEN_KEY = "swoopscore_bday_seen";
+const BDAY_EMOJI = ["🎉", "🥳", "🎂", "🎈", "🦄", "🍰", "🤪", "🎁"];
+const BDAY_COLORS = ["var(--accent)", "#d9822b", "#2f8f88", "#a4568c", "#4f6fc4"];
+
+function showBirthday() {
+  const now = new Date();
+  const today = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const preview = location.hash === "#birthday";
+  const name = preview ? Object.values(BIRTHDAYS)[0] : BIRTHDAYS[today];
+  if (!name) return;
+
+  const stamp = `${now.getFullYear()}-${today}`;
+  if (!preview) {
+    try {
+      if (localStorage.getItem(BDAY_SEEN_KEY) === stamp) return;
+      localStorage.setItem(BDAY_SEEN_KEY, stamp);
+    } catch (e) {
+      console.warn("Birthday splash: can't remember it was shown, so it may repeat today.", e);
+    }
+  }
+
+  const el = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    return e;
+  };
+
+  const orbit = el("div", "bday-orbit");
+  BDAY_EMOJI.forEach((emoji, i) => {
+    const a = (i / BDAY_EMOJI.length) * 2 * Math.PI;
+    const r = Math.min(135, window.innerWidth / 2 - 30);
+    const span = el("span");
+    span.style.transform = `translate(${Math.cos(a) * r}px, ${Math.sin(a) * r}px)`;
+    span.append(el("b", null, emoji));
+    orbit.append(span);
+  });
+
+  const title = el("h2", "bday-name");
+  [...name].forEach((ch, i) => {
+    const s = el("span", null, ch);
+    s.style.animationDelay = `${0.25 + i * 0.08}s`;
+    s.style.color = BDAY_COLORS[i % BDAY_COLORS.length];
+    title.append(s);
+  });
+
+  const msg = el("div", "bday-msg");
+  msg.append(el("div", "bday-hb", "Happy birthday"), title,
+    el("p", "bday-rule", "Birthday rule: you go first."), el("div", "bday-tap", "Tap to play"));
+
+  const splash = el("div", "bday");
+  splash.setAttribute("role", "dialog");
+  splash.setAttribute("aria-label", `Happy birthday, ${name}!`);
+  splash.append(orbit, msg);
+  splash.addEventListener("click", () => {
+    splash.classList.add("out");
+    setTimeout(() => splash.remove(), 400);
+  });
+  document.body.append(splash);
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) confetti(splash);
+}
+
+// One ~3 s burst of paper bits from mid-screen; the loop and canvas remove
+// themselves when it's over (or when the splash is dismissed).
+function confetti(host) {
+  const c = document.createElement("canvas");
+  c.className = "bday-confetti";
+  host.append(c);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = (c.width = window.innerWidth * dpr), h = (c.height = window.innerHeight * dpr);
+  const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  const colors = BDAY_COLORS.map((col) => (col.startsWith("var(") ? accent : col));
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const bits = Array.from({ length: 90 }, () => {
+    const a = rnd(0, 2 * Math.PI), v = rnd(4, 13) * dpr;
+    return { x: w / 2, y: h * 0.45, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 5 * dpr, r: rnd(0, 6), vr: rnd(-0.3, 0.3),
+      size: rnd(4, 8) * dpr, color: colors[Math.floor(Math.random() * colors.length)] };
+  });
+  const ctx = c.getContext("2d"), t0 = performance.now();
+  (function tick(t) {
+    const k = (t - t0) / 3000;
+    if (k > 1 || !c.isConnected) return c.remove();
+    ctx.clearRect(0, 0, w, h);
+    ctx.globalAlpha = Math.min(1, (1 - k) * 3);
+    for (const b of bits) {
+      b.vx *= 0.97; b.vy = b.vy * 0.97 + 0.45 * dpr; b.x += b.vx; b.y += b.vy; b.r += b.vr;
+      ctx.save();
+      ctx.translate(b.x, b.y); ctx.rotate(b.r); ctx.scale(1, Math.cos(b.r * 3));
+      ctx.fillStyle = b.color; ctx.fillRect(-b.size / 2, -b.size / 4, b.size, b.size / 2);
+      ctx.restore();
+    }
+    requestAnimationFrame(tick);
+  })(t0);
+}
+
+showBirthday();
