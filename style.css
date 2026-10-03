@@ -1282,7 +1282,9 @@ input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
 
 /* --- Birthday splash ------------------------------------------------------
    Shown by showBirthday() in app.js. Only transform/opacity animate, and
-   everything but the slow emoji orbit stops on its own. */
+   everything but the slow emoji orbit stops on its own. It deliberately
+   ignores prefers-reduced-motion: it's a once-a-year party, and it waits for
+   a tap. */
 
 .bday {
   position: fixed;
@@ -1336,7 +1338,3 @@ input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
 @keyframes bday-spin { to { transform: rotate(360deg); } }
 
 .bday-confetti { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
-
-@media (prefers-reduced-motion: reduce) {
-  .bday, .bday * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
-}

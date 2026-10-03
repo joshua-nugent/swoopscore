@@ -874,7 +874,7 @@ function showBirthday() {
     setTimeout(() => splash.remove(), 400);
   });
   document.body.append(splash);
-  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) confetti(splash);
+  confetti(splash);
 }
 
 // One ~3 s burst of paper bits from mid-screen; the loop and canvas remove
