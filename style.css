@@ -1338,3 +1338,48 @@ input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
 @keyframes bday-spin { to { transform: rotate(360deg); } }
 
 .bday-confetti { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+
+/* Tone's splash (toneSplash() in app.js). Heads, blasts and emoji all sit at
+   the top-left / center and are moved by transforms set from JS. */
+.tone-head {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--hw);
+  height: auto;
+  z-index: 2;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
+  transform: translate(-999px, -999px);
+}
+.tone-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; }
+.tone-flash, .tone-ring {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  margin: -20px;
+  border-radius: 50%;
+  z-index: 1;
+  pointer-events: none;
+}
+.tone-flash { background: radial-gradient(circle, #fff 0 30%, #ffd166 55%, transparent 70%); }
+.tone-ring { border: 6px solid var(--accent); }
+.tone-slam { position: absolute; inset: 0; z-index: 1; }
+.tone-emo { position: absolute; left: 50%; top: 50%; font-size: 1.8rem; line-height: 1; margin: -0.5em; z-index: 2; pointer-events: none; }
+.tone-msg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  text-align: center;
+  pointer-events: none;
+}
+.tone-hbd, .tone-name { font-family: "Bungee", sans-serif; line-height: 0.95; }
+.tone-hbd { font-size: min(2.6rem, 13vw); letter-spacing: 0.06em; }
+.tone-name { font-size: min(4rem, 19vw); }
+.tone-hbd span, .tone-name span { display: inline-block; text-shadow: 0 3px 0 var(--text); }
+.tone-msg .bday-rule { margin-top: 0.9rem; }
+.tone-msg .bday-tap { animation: bday-in 0.5s ease 1.4s both; }

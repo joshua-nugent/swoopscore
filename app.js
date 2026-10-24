@@ -822,59 +822,405 @@ restoreGame();
 
 // --- Birthday splash ---
 // Keyed by local "MM-DD". Shown on every page load that day (starting a new
-// game doesn't reload, so it won't interrupt play); add "#birthday" to the URL
-// to preview it on any day.
+// game doesn't reload, so it won't interrupt play). To preview on any day, add
+// "#birthday" (the next one coming up, counting today), "#birthday-tone" (a
+// named one) or "#birthday-tone-3" (one of that person's numbered variants)
+// to the URL.
 
-const BIRTHDAYS = { "10-03": "Danielle" };
+const BIRTHDAYS = {
+  "10-03": { name: "Danielle", show: danielleSplash },
+  "10-25": { name: "Tone", show: toneSplash },
+};
 const BDAY_EMOJI = ["🎉", "🥳", "🎂", "🎈", "🦄", "🍰", "🤪", "🎁"];
 const BDAY_COLORS = ["var(--accent)", "#d9822b", "#2f8f88", "#a4568c", "#4f6fc4"];
+
+const bdayEl = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text) e.textContent = text;
+  return e;
+};
 
 function showBirthday() {
   const now = new Date();
   const today = `${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const preview = location.hash === "#birthday";
-  const name = preview ? Object.values(BIRTHDAYS)[0] : BIRTHDAYS[today];
-  if (!name) return;
+  const preview = location.hash.match(/^#birthday(?:-([a-z]+))?(?:-(\d+))?$/i);
+  const all = Object.values(BIRTHDAYS);
+  const bday = !preview ? BIRTHDAYS[today]
+    : preview[1] ? all.find((b) => b.name.toLowerCase() === preview[1].toLowerCase()) : BIRTHDAYS[nextBirthday(now)];
+  if (preview && !bday) console.warn(`No birthday named "${preview[1]}" to preview`);
+  if (!bday) return;
 
-  const el = (tag, cls, text) => {
-    const e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text) e.textContent = text;
-    return e;
-  };
-
-  const orbit = el("div", "bday-orbit");
-  BDAY_EMOJI.forEach((emoji, i) => {
-    const a = (i / BDAY_EMOJI.length) * 2 * Math.PI;
-    const r = Math.min(135, window.innerWidth / 2 - 30);
-    const span = el("span");
-    span.style.transform = `translate(${Math.cos(a) * r}px, ${Math.sin(a) * r}px)`;
-    span.append(el("b", null, emoji));
-    orbit.append(span);
-  });
-
-  const title = el("h2", "bday-name");
-  [...name].forEach((ch, i) => {
-    const s = el("span", null, ch);
-    s.style.animationDelay = `${0.25 + i * 0.08}s`;
-    s.style.color = BDAY_COLORS[i % BDAY_COLORS.length];
-    title.append(s);
-  });
-
-  const msg = el("div", "bday-msg");
-  msg.append(el("div", "bday-hb", "Happy birthday"), title,
-    el("p", "bday-rule", "Birthday rule: you go first."), el("div", "bday-tap", "Tap to play"));
-
-  const splash = el("div", "bday");
+  const splash = bdayEl("div", "bday");
   splash.setAttribute("role", "dialog");
-  splash.setAttribute("aria-label", `Happy birthday, ${name}!`);
-  splash.append(orbit, msg);
+  splash.setAttribute("aria-label", `Happy birthday, ${bday.name}!`);
   splash.addEventListener("click", () => {
     splash.classList.add("out");
     setTimeout(() => splash.remove(), 400);
   });
   document.body.append(splash);
+  bday.show(splash, bday.name, preview && Number(preview[2]));
+}
+
+// The "MM-DD" key of the soonest birthday on or after `now`, wrapping into next year.
+function nextBirthday(now) {
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysUntil = (key) => {
+    const [m, d] = key.split("-").map(Number);
+    let date = new Date(now.getFullYear(), m - 1, d);
+    if (date < midnight) date = new Date(now.getFullYear() + 1, m - 1, d);
+    return date - midnight;
+  };
+  return Object.keys(BIRTHDAYS).reduce((a, b) => (daysUntil(b) < daysUntil(a) ? b : a));
+}
+
+function danielleSplash(splash, name) {
+  const orbit = bdayEl("div", "bday-orbit");
+  BDAY_EMOJI.forEach((emoji, i) => {
+    const a = (i / BDAY_EMOJI.length) * 2 * Math.PI;
+    const r = Math.min(135, window.innerWidth / 2 - 30);
+    const span = bdayEl("span");
+    span.style.transform = `translate(${Math.cos(a) * r}px, ${Math.sin(a) * r}px)`;
+    span.append(bdayEl("b", null, emoji));
+    orbit.append(span);
+  });
+
+  const title = bdayEl("h2", "bday-name");
+  [...name].forEach((ch, i) => {
+    const s = bdayEl("span", null, ch);
+    s.style.animationDelay = `${0.25 + i * 0.08}s`;
+    s.style.color = BDAY_COLORS[i % BDAY_COLORS.length];
+    title.append(s);
+  });
+
+  const msg = bdayEl("div", "bday-msg");
+  msg.append(bdayEl("div", "bday-hb", "Happy birthday"), title,
+    bdayEl("p", "bday-rule", "Birthday rule: you go first."), bdayEl("div", "bday-tap", "Tap to play"));
+  splash.append(orbit, msg);
   confetti(splash);
+}
+
+// Tone's splash: one of five lead-ins, picked at random on each load, flings
+// his four cut-out heads around and ends on the same explosion + "HBD TONE!".
+
+const TONE_EMOJI = ["🎉", "🥳", "🎂", "🎈", "🎁", "💥", "🎊", "🤘"];
+const TONE_SPLASHES = [bounceHouse, popUpParty, toneTornado, rocketLaunch, bigHeadMode];
+
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const easeOut = (t) => 1 - (1 - t) ** 3;
+const easeIn = (t) => t * t * t;
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+async function toneSplash(splash, name, variant) {
+  if (variant && !TONE_SPLASHES[variant - 1]) console.warn(`No Tone splash #${variant}; picking one at random`);
+  const play = TONE_SPLASHES[variant - 1] || pick(TONE_SPLASHES);
+  splash.classList.add("tone");
+  const heads = [1, 2, 3, 4].map((i) => {
+    const img = bdayEl("img", "tone-head");
+    img.src = `img/tone-${i}.webp?v=1`;
+    img.alt = "";
+    return img;
+  });
+  const st = new HeadStage(splash, heads, name);
+  try {
+    await Promise.all(heads.map((h) => h.decode()));
+  } catch (e) {
+    console.error("Tone's head images failed to load", e);
+    st.finale("(his photos didn't load)");
+    return;
+  }
+  play(st);
+}
+
+// Everything is positioned from JS: heads by transform (via place()), bits of
+// confetti and sparks on one canvas. Loops end once the splash is dismissed.
+class HeadStage {
+  constructor(splash, heads, name) {
+    Object.assign(this, { splash, heads, name, parts: [] });
+    this.W = window.innerWidth; this.H = window.innerHeight;
+    this.cx = this.W / 2; this.cy = this.H / 2;
+    this.hw = Math.round(Math.min(this.W, this.H * 0.6) * 0.3);
+    splash.style.setProperty("--hw", `${this.hw}px`);
+    const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+    this.colors = [...BDAY_COLORS.map((c) => (c.startsWith("var(") ? accent : c)), "#e3b23c"];
+    this.canvas = bdayEl("canvas", "tone-canvas");
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = this.W * this.dpr; this.canvas.height = this.H * this.dpr;
+    this.ctx = this.canvas.getContext("2d");
+    splash.append(this.canvas, ...heads);
+    this.loop();
+  }
+  // Calls fn(seconds) every frame until it returns false; resolves then.
+  frames(fn) {
+    return new Promise((done) => {
+      const t0 = performance.now();
+      const step = (now) => {
+        if (!this.splash.isConnected) return;
+        if (fn((now - t0) / 1000) === false) done(); else requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  place(img, x, y, rot = 0, sx = 1, sy = sx, op = 1) {
+    const h = (this.hw * img.naturalHeight) / img.naturalWidth;
+    img.style.transform = `translate(${x - this.hw / 2}px, ${y - h / 2}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
+    img.style.opacity = op;
+  }
+  // "bit" = paper confetti that falls, "spark" = a short glowing streak.
+  burst(x, y, n = 60, { speed = 7, colors = this.colors, kind = "bit", up = 2, life = 1.6 } = {}) {
+    for (let i = 0; i < n; i++) {
+      const a = rnd(0, 2 * Math.PI), v = rnd(0.3, 1) * speed;
+      this.parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - up, r: rnd(0, 6), vr: rnd(-0.3, 0.3),
+        s: rnd(4, 8), c: pick(colors), kind, age: 0, life: life * rnd(0.7, 1.2) });
+    }
+  }
+  loop() {
+    const { ctx, dpr } = this;
+    const tick = () => {
+      if (!this.splash.isConnected) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, this.W, this.H);
+      this.parts = this.parts.filter((p) => (p.age += 1 / 60) < p.life);
+      for (const p of this.parts) {
+        ctx.globalAlpha = Math.min(1, (1 - p.age / p.life) * 3);
+        if (p.kind === "spark") {
+          p.vx *= 0.94; p.vy = p.vy * 0.94 + 0.08; p.x += p.vx; p.y += p.vy;
+          ctx.strokeStyle = p.c; ctx.lineWidth = 2.5; ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3); ctx.stroke();
+        } else {
+          p.vx *= 0.97; p.vy = p.vy * 0.97 + 0.22; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+          ctx.save();
+          ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.scale(1, Math.cos(p.r * 3));
+          ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+          ctx.restore();
+        }
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  fx(cls, keyframes, ms, x, y) {
+    const d = bdayEl("div", cls);
+    d.style.left = `${x}px`; d.style.top = `${y}px`;
+    this.splash.append(d);
+    d.animate(keyframes, { duration: ms, easing: "cubic-bezier(.2,.7,.3,1)", fill: "forwards" }).onfinish = () => d.remove();
+  }
+  explode(x = this.cx, y = this.cy, big = true) {
+    this.fx("tone-flash", [{ transform: "scale(.2)", opacity: 1 }, { transform: `scale(${big ? 14 : 5})`, opacity: 0 }], big ? 700 : 450, x, y);
+    this.fx("tone-ring", [{ transform: "scale(.2)", opacity: 1 }, { transform: `scale(${big ? 12 : 4})`, opacity: 0, borderWidth: "1px" }], big ? 800 : 500, x, y);
+    this.burst(x, y, big ? 110 : 30, { speed: big ? 12 : 6 });
+    this.burst(x, y, big ? 60 : 20, { speed: big ? 14 : 8, kind: "spark", colors: ["#fff3b0", "#ffd166", "#ff8c42", "#ff5e5b"], up: 0, life: 0.9 });
+  }
+  // The shared ending: blast, shake, emoji spray into a bobbing ring, title slam.
+  finale(note) {
+    const { splash } = this;
+    this.explode();
+    splash.animate([{ transform: "translate(6px,-4px)" }, { transform: "translate(-5px,5px)" }, { transform: "translate(4px,3px)" }, { transform: "none" }], { duration: 300 });
+    const R = Math.min(this.W, this.H) * 0.42;
+    TONE_EMOJI.forEach((e, i) => {
+      const s = bdayEl("span", "tone-emo", e);
+      splash.append(s);
+      const a = (i / TONE_EMOJI.length) * 2 * Math.PI - Math.PI / 2;
+      const x = Math.cos(a) * R, y = Math.sin(a) * R * 1.35;
+      s.animate([
+        { transform: "translate(0,0) scale(.2) rotate(-200deg)", opacity: 0 },
+        { offset: 0.7, transform: `translate(${x * 1.15}px,${y * 1.15}px) scale(1.5) rotate(20deg)`, opacity: 1 },
+        { transform: `translate(${x}px,${y}px) scale(1) rotate(0)`, opacity: 1 },
+      ], { duration: 900, delay: i * 30, easing: "cubic-bezier(.2,.8,.3,1)", fill: "forwards" }).onfinish = () =>
+        s.animate([{ transform: `translate(${x}px,${y}px)` }, { transform: `translate(${x}px,${y - 8}px) rotate(${i % 2 ? 12 : -12}deg)` }],
+          { duration: 700 + i * 60, direction: "alternate", iterations: Infinity, easing: "ease-in-out", fill: "forwards" });
+    });
+    const word = (cls, text, delay, shift) => {
+      const w = bdayEl("div", cls);
+      [...text].forEach((ch, i) => {
+        const s = bdayEl("span", null, ch);
+        s.style.color = this.colors[(i + shift) % this.colors.length];
+        s.animate([
+          { transform: "scale(4) rotate(-30deg)", opacity: 0 },
+          { offset: 0.6, transform: "scale(.85) rotate(4deg)", opacity: 1 },
+          { transform: "none", opacity: 1 },
+        ], { duration: 450, delay: delay + i * 70, easing: "cubic-bezier(.3,1.5,.5,1)", fill: "backwards" });
+        w.append(s);
+      });
+      return w;
+    };
+    const msg = bdayEl("div", "tone-msg");
+    msg.append(word("tone-hbd", "HBD", 0, 0), word("tone-name", `${this.name.toUpperCase()}!`, 260, 2),
+      bdayEl("p", "bday-rule", "Birthday rule: you go first."), bdayEl("div", "bday-tap", "Tap to play"));
+    if (note) msg.append(bdayEl("p", "bday-tap", note));
+    splash.append(msg);
+    setTimeout(() => this.burst(this.cx, this.H * 0.3, 50, { speed: 9 }), 600);
+  }
+  // After the finale, the heads glide from `from` ([x, y, rot, scale] each)
+  // to the four corners and bob there.
+  async parkHeads(from) {
+    const spots = [[0.22, 0.14], [0.78, 0.14], [0.22, 0.86], [0.78, 0.86]].map(([x, y]) => [x * this.W, y * this.H]);
+    await this.frames((t) => {
+      const k = easeOut(Math.min(1, t / 0.7));
+      this.heads.forEach((h, i) => {
+        const [fx, fy, fr, fs] = from[i], [tx, ty] = spots[i];
+        this.place(h, fx + (tx - fx) * k, fy + (ty - fy) * k, fr * (1 - k) + (i % 2 ? 8 : -8) * k, fs + (0.8 - fs) * k);
+      });
+      return t < 0.7;
+    });
+    this.frames((t) => {
+      this.heads.forEach((h, i) => {
+        const [x, y] = spots[i];
+        this.place(h, x, y - Math.abs(Math.sin(t * 3 + i)) * 10, Math.sin(t * 2 + i) * 9, 0.8);
+      });
+    });
+  }
+}
+
+// Heads drop in and ricochet off the walls, squashing on each landing, then
+// get pulled together and smash into the title.
+async function bounceHouse(st) {
+  const half = st.hw / 2;
+  const s = st.heads.map((h, i) => ({ x: rnd(st.hw, st.W - st.hw), y: -st.hw - i * 140, vx: pick([-1, 1]) * rnd(2, 6), vy: 0, rot: 0, sq: 0 }));
+  await st.frames((t) => {
+    s.forEach((b, i) => {
+      if (t < i * 0.35) return;
+      b.vy += 0.55; b.x += b.vx; b.y += b.vy; b.rot += b.vx * 2; b.sq *= 0.85;
+      if (b.y > st.H - half) {
+        b.y = st.H - half; b.vy = -Math.max(Math.abs(b.vy) * 0.9, 13); b.sq = 0.35;
+        st.burst(b.x, st.H - 4, 6, { speed: 4, up: 3 });
+      }
+      if (b.x < half || b.x > st.W - half) { b.vx *= -1; b.x = Math.min(Math.max(b.x, half), st.W - half); }
+      st.place(st.heads[i], b.x, b.y, b.rot, 1 + b.sq, 1 - b.sq);
+    });
+    return t < 3.4;
+  });
+  await st.frames((t) => {
+    const k = easeIn(Math.min(1, t / 0.6));
+    s.forEach((b, i) => st.place(st.heads[i], b.x + (st.cx - b.x) * k, b.y + (st.cy - b.y) * k, b.rot + 720 * k, 1 - 0.5 * k));
+    return t < 0.6;
+  });
+  st.finale();
+  st.parkHeads(st.heads.map(() => [st.cx, st.cy, 0, 0.5]));
+}
+
+// Whack-a-mole: heads pop in and out, faster and faster, until all four pop
+// up in a row.
+async function popUpParty(st) {
+  const pop = (h, x, y, ms) => {
+    const tilt = rnd(-25, 25);
+    const at = `translate(${x - st.hw / 2}px,${y - (st.hw * h.naturalHeight) / h.naturalWidth / 2}px)`;
+    h.style.opacity = 1;
+    h.animate([
+      { transform: `${at} scale(0) rotate(${tilt}deg)` },
+      { offset: 0.25, transform: `${at} scale(1.25) rotate(${-tilt / 2}deg)` },
+      { offset: 0.4, transform: `${at} scale(.95) rotate(${tilt / 4}deg)` },
+      { offset: 0.85, transform: `${at} scale(1)` },
+      { transform: `${at} scale(0) rotate(${-tilt}deg)` },
+    ], { duration: ms, easing: "ease-out", fill: "forwards" });
+    setTimeout(() => st.burst(x, y, 14, { speed: 5, up: 1 }), ms * 0.9);
+  };
+  let gap = 520;
+  for (let n = 0; n < 12; n++) {
+    const x = rnd(st.hw * 0.7, st.W - st.hw * 0.7), y = rnd(st.hw * 0.8, st.H - st.hw * 0.8);
+    pop(st.heads[n % 4], x, y, Math.max(gap * 1.6, 380));
+    if (n > 7) pop(st.heads[(n + 2) % 4], st.W - x, st.H - y, 380);
+    await sleep(gap);
+    gap *= 0.84;
+  }
+  const row = st.heads.map((h, i) => [st.W * (0.14 + i * 0.24), st.cy]);
+  st.heads.forEach((h, i) => pop(h, row[i][0], row[i][1], 700));
+  await sleep(650);
+  st.heads.forEach((h) => h.getAnimations().forEach((a) => a.cancel()));
+  st.finale();
+  st.parkHeads(row.map(([x, y]) => [x, y, 0, 0]));
+}
+
+// The heads whirl in a tightening spiral, collapse into the middle and blow
+// up, then orbit the title.
+async function toneTornado(st) {
+  const R0 = Math.max(st.W, st.H) * 0.7;
+  await st.frames((t) => {
+    const k = Math.min(1, t / 3.2);
+    const rad = R0 * (1 - easeInOut(k)) + 4, ang = 8 * k * k * 2 * Math.PI;
+    st.heads.forEach((h, i) => {
+      const a = ang + (i * Math.PI) / 2;
+      st.place(h, st.cx + Math.cos(a) * rad, st.cy + Math.sin(a) * rad * 1.3, ang * 57 * (i % 2 ? -1 : 1), 1.1 - 0.6 * k);
+    });
+    if (k > 0.3 && Math.random() < 0.3) {
+      st.burst(st.cx + rnd(-120, 120) * (1 - k), st.cy + rnd(-120, 120) * (1 - k), 2, { speed: 3, kind: "spark", up: 0, life: 0.5 });
+    }
+    return t < 3.2;
+  });
+  st.finale();
+  const R = st.W * 0.36;
+  st.frames((t) => {
+    const k = easeOut(Math.min(1, t / 0.8));
+    st.heads.forEach((h, i) => {
+      const a = t * 0.9 + (i * Math.PI) / 2;
+      st.place(h, st.cx + Math.cos(a) * R * k * 1.05, st.cy + Math.sin(a) * R * k * 2, Math.sin(t * 2 + i) * 12, 0.5 + 0.2 * k, undefined, 0.95);
+    });
+  });
+}
+
+// Each head blasts off from the bottom and bursts into a firework; then all
+// four launch together.
+async function rocketLaunch(st) {
+  const flame = ["#ffd166", "#ff8c42", "#fff3b0"];
+  const launch = (h, x, apexY, dur, color) => st.frames((t) => {
+    const k = Math.min(1, t / dur);
+    const y = st.H + st.hw - (st.H + st.hw - apexY) * easeOut(k);
+    st.place(h, x + Math.sin(k * 12) * 6, y, k * 540, 0.7 + 0.3 * k);
+    if (k < 0.9) st.burst(x, y + st.hw * 0.45, 2, { speed: 2, kind: "spark", colors: flame, up: -2, life: 0.5 });
+    if (k >= 1) {
+      st.explode(x, apexY, false);
+      st.burst(x, apexY, 45, { speed: 9, kind: "spark", colors: [color, "#fff3b0"], up: 0, life: 1.1 });
+    }
+    return k < 1;
+  });
+  const xs = [0.3, 0.7, 0.45, 0.62];
+  for (let i = 0; i < 4; i++) {
+    const h = st.heads[i], x = xs[i] * st.W, y = st.H * rnd(0.22, 0.4);
+    await launch(h, x, y, 0.75, st.colors[i + 1]);
+    st.frames((t) => { st.place(h, x + t * 40 * (i % 2 ? 1 : -1), y + t * t * 500, 540 + t * 400, 1, 1, Math.max(0, 1 - t)); return t < 1; });
+    await sleep(250);
+  }
+  await Promise.all(st.heads.map((h, i) => st.frames((t) => {
+    const k = Math.min(1, t / 0.8), x0 = st.W * (0.12 + i * 0.25);
+    const x = x0 + (st.cx - x0) * easeIn(k), y = st.H + st.hw - (st.H + st.hw - st.cy) * easeOut(k);
+    st.place(h, x, y, k * 720, 0.9 - 0.4 * k);
+    st.burst(x, y + 20, 1, { speed: 2, kind: "spark", colors: flame, up: -2, life: 0.4 });
+    return k < 1;
+  })));
+  st.finale();
+  st.parkHeads(st.heads.map(() => [st.cx, st.cy, 0, 0.5]));
+}
+
+// A hype reel: each head zooms at the camera over a color slam, then all four
+// shrink back into a stack and blast apart.
+async function bigHeadMode(st) {
+  for (let i = 0; i < 4; i++) {
+    const h = st.heads[i];
+    const slam = bdayEl("div", "tone-slam");
+    slam.style.background = st.colors[i];
+    st.splash.append(slam);
+    slam.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.15 }, { opacity: 0.9, offset: 0.8 }, { opacity: 0 }], { duration: 700, fill: "forwards" });
+    const spin = i % 2 ? 1 : -1;
+    await st.frames((t) => {
+      const k = Math.min(1, t / 0.7);
+      const s = k < 0.35 ? 0.1 + 3.4 * easeOut(k / 0.35) : 3.5 + 1.5 * (k - 0.35);
+      st.place(h, st.cx, st.cy, spin * (1 - easeOut(Math.min(1, k * 3))) * 180, s, s, k < 0.8 ? 1 : 1 - (k - 0.8) * 5);
+      return k < 1;
+    });
+    st.burst(st.cx, st.cy, 25, { speed: 10, up: 0 });
+    slam.remove();
+    h.style.opacity = 0;
+  }
+  await st.frames((t) => {
+    const k = easeOut(Math.min(1, t / 0.6));
+    st.heads.forEach((h, i) => st.place(h, st.cx + (i - 1.5) * 14 * k, st.cy + (i % 2 ? 8 : -8) * k, (i - 1.5) * 20 * k, 5 - 4.4 * k));
+    return t < 0.6;
+  });
+  await sleep(150);
+  st.finale();
+  st.parkHeads(st.heads.map((h, i) => [st.cx + (i - 1.5) * 14, st.cy, (i - 1.5) * 20, 0.6]));
 }
 
 // One ~3 s burst of paper bits from mid-screen; the loop and canvas remove
@@ -887,7 +1233,6 @@ function confetti(host) {
   const w = (c.width = window.innerWidth * dpr), h = (c.height = window.innerHeight * dpr);
   const accent = getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
   const colors = BDAY_COLORS.map((col) => (col.startsWith("var(") ? accent : col));
-  const rnd = (a, b) => a + Math.random() * (b - a);
   const bits = Array.from({ length: 90 }, () => {
     const a = rnd(0, 2 * Math.PI), v = rnd(4, 13) * dpr;
     return { x: w / 2, y: h * 0.45, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 5 * dpr, r: rnd(0, 6), vr: rnd(-0.3, 0.3),
